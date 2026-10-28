@@ -1,0 +1,142 @@
+{
+ "model": "gpt2-medium",
+ "path": "/dataset1/zailong/models/gpt2-medium",
+ "n_params": 354823168,
+ "norm_type": "LayerNorm",
+ "norm_has_bias": true,
+ "tie_word_embeddings": true,
+ "embeddings_actually_shared": true,
+ "post_recompute_rel_err_max": 0.0019594930916966478,
+ "pre_pos0_norm_ratio_median": 0.25261785089969635,
+ "beta": {
+  "beta_norm": 11.959388732910156,
+  "median_post_token_norm": 265.4669494628906,
+  "cos(beta, mean post token)": 0.8795091509819031,
+  "beta_norm / mean_post_token_norm": 0.0532868355512619
+ },
+ "variants": {
+  "pre": {
+   "all": {
+    "isotropy": 0.211573995411396,
+    "n_tokens": 10000,
+    "cross_cos": 0.7715542912483215,
+    "cross_cos_centered": 0.0034574694000184536,
+    "rankme": 741.466832420467,
+    "rankme_over_d": 0.7240887035356123,
+    "top1_var": 0.3771923825469844,
+    "top10_var": 0.6797703414952003,
+    "max_rank": 1024
+   },
+   "no_pos0": {
+    "isotropy": 0.21151848959922792,
+    "n_tokens": 9936,
+    "cross_cos": 0.768020510673523,
+    "cross_cos_centered": 0.0022460075560957193,
+    "rankme": 742.912297034789,
+    "rankme_over_d": 0.7255002900730362,
+    "top1_var": 0.3802564802382435,
+    "top10_var": 0.6766788917691052,
+    "max_rank": 1024
+   }
+  },
+  "xhat": {
+   "all": {
+    "isotropy": 0.21157829254865645,
+    "n_tokens": 10000,
+    "cross_cos": 0.7715434432029724,
+    "cross_cos_centered": 0.008364546112716198,
+    "rankme": 774.7752963709625,
+    "rankme_over_d": 0.756616500362268,
+    "top1_var": 0.3954411150566967,
+    "top10_var": 0.6208093186746155,
+    "max_rank": 1024
+   },
+   "no_pos0": {
+    "isotropy": 0.21152320545911785,
+    "n_tokens": 9936,
+    "cross_cos": 0.7680078744888306,
+    "cross_cos_centered": 0.005695756059139967,
+    "rankme": 775.201126195281,
+    "rankme_over_d": 0.757032349800079,
+    "top1_var": 0.39753325240967735,
+    "top10_var": 0.6225744555514735,
+    "max_rank": 1024
+   }
+  },
+  "no_bias": {
+   "all": {
+    "isotropy": 0.3347245026081801,
+    "n_tokens": 10000,
+    "cross_cos": 0.6571784019470215,
+    "cross_cos_centered": 0.03718524053692818,
+    "rankme": 212.88903347593464,
+    "rankme_over_d": 0.20789944675384242,
+    "top1_var": 0.9200924933660849,
+    "top10_var": 0.9913118086297341,
+    "max_rank": 1024
+   },
+   "no_pos0": {
+    "isotropy": 0.3360096744298935,
+    "n_tokens": 9936,
+    "cross_cos": 0.6424672603607178,
+    "cross_cos_centered": 0.03295980766415596,
+    "rankme": 212.4764036565216,
+    "rankme_over_d": 0.20749648794582187,
+    "top1_var": 0.9207963159706709,
+    "top10_var": 0.991350166173516,
+    "max_rank": 1024
+   }
+  },
+  "post": {
+   "all": {
+    "isotropy": 0.3191771007627249,
+    "n_tokens": 10000,
+    "cross_cos": 0.673552930355072,
+    "cross_cos_centered": 0.03720381483435631,
+    "rankme": 212.87934773030014,
+    "rankme_over_d": 0.20788998801787123,
+    "top1_var": 0.9200883230689113,
+    "top10_var": 0.9913127327068689,
+    "max_rank": 1024
+   },
+   "no_pos0": {
+    "isotropy": 0.32042394107580185,
+    "n_tokens": 9936,
+    "cross_cos": 0.6596472859382629,
+    "cross_cos_centered": 0.03293013945221901,
+    "rankme": 212.46398549867197,
+    "rankme_over_d": 0.20748436083854685,
+    "top1_var": 0.9207937360935795,
+    "top10_var": 0.991351289094723,
+    "max_rank": 1024
+   }
+  },
+  "post_minus_beta": {
+   "all": {
+    "isotropy": 0.3347258897125721,
+    "n_tokens": 10000,
+    "cross_cos": 0.6571937203407288,
+    "cross_cos_centered": 0.037224914878606796,
+    "rankme": 212.86737038044774,
+    "rankme_over_d": 0.207878291387156,
+    "top1_var": 0.9200988084936368,
+    "top10_var": 0.9913137892618537,
+    "max_rank": 1024
+   },
+   "no_pos0": {
+    "isotropy": 0.33601091073453426,
+    "n_tokens": 9936,
+    "cross_cos": 0.6424848437309265,
+    "cross_cos_centered": 0.032952554523944855,
+    "rankme": 212.4529921246902,
+    "rankme_over_d": 0.20747362512176779,
+    "top1_var": 0.920803424857871,
+    "top10_var": 0.9913523076441212,
+    "max_rank": 1024
+   }
+  }
+ },
+ "n_seqs": 1000,
+ "seed": 0,
+ "elapsed_s": 21.374805212020874
+}

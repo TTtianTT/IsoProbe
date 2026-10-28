@@ -1,0 +1,113 @@
+{
+ "model": "Mistral-Small-24B-Instruct-2501",
+ "path": "/dataset1/zailong/models/Mistral-Small-24B-Instruct-2501",
+ "n_params": 23572403200,
+ "norm_type": "MistralRMSNorm",
+ "norm_has_bias": false,
+ "tie_word_embeddings": false,
+ "embeddings_actually_shared": false,
+ "post_recompute_rel_err_max": 0.0024163666430437394,
+ "pre_pos0_norm_ratio_median": 2.536718726158142,
+ "beta": null,
+ "variants": {
+  "pre": {
+   "all": {
+    "isotropy": 0.6823563596010208,
+    "n_tokens": 10000,
+    "cross_cos": 0.17967940866947174,
+    "cross_cos_centered": -0.00039345145341940224,
+    "rankme": 3481.672781903414,
+    "rankme_over_d": 0.6800142152155105,
+    "top1_var": 0.08743161527488143,
+    "top10_var": 0.31229086472723677,
+    "max_rank": 5120
+   },
+   "no_pos0": {
+    "isotropy": 0.679019618332386,
+    "n_tokens": 9938,
+    "cross_cos": 0.18268562853336334,
+    "cross_cos_centered": -0.0003463012690190226,
+    "rankme": 3512.19503754626,
+    "rankme_over_d": 0.685975593270754,
+    "top1_var": 0.08830206596885112,
+    "top10_var": 0.2887289595842434,
+    "max_rank": 5120
+   }
+  },
+  "xhat": {
+   "all": {
+    "isotropy": 0.682356370896101,
+    "n_tokens": 10000,
+    "cross_cos": 0.17967936396598816,
+    "cross_cos_centered": -0.00034806609619408846,
+    "rankme": 3551.2241714401334,
+    "rankme_over_d": 0.6935984709844011,
+    "top1_var": 0.0716149417422212,
+    "top10_var": 0.25881487059895486,
+    "max_rank": 5120
+   },
+   "no_pos0": {
+    "isotropy": 0.6790196284204721,
+    "n_tokens": 9938,
+    "cross_cos": 0.1826857030391693,
+    "cross_cos_centered": -0.00023203014279715717,
+    "rankme": 3558.0406950535257,
+    "rankme_over_d": 0.6949298232526417,
+    "top1_var": 0.07171477146744358,
+    "top10_var": 0.25818296925261364,
+    "max_rank": 5120
+   }
+  },
+  "no_bias": {
+   "all": {
+    "isotropy": 0.5963910721540451,
+    "n_tokens": 10000,
+    "cross_cos": 0.2906043529510498,
+    "cross_cos_centered": -0.00020748638780787587,
+    "rankme": 3317.305870336849,
+    "rankme_over_d": 0.6479113028001657,
+    "top1_var": 0.12666830856307645,
+    "top10_var": 0.4182152040354108,
+    "max_rank": 5120
+   },
+   "no_pos0": {
+    "isotropy": 0.5921327219903469,
+    "n_tokens": 9938,
+    "cross_cos": 0.29472893476486206,
+    "cross_cos_centered": -0.000962885853368789,
+    "rankme": 3326.7978787284674,
+    "rankme_over_d": 0.6497652106891538,
+    "top1_var": 0.1275555635840365,
+    "top10_var": 0.41593804692323727,
+    "max_rank": 5120
+   }
+  },
+  "post": {
+   "all": {
+    "isotropy": 0.5963850702345371,
+    "n_tokens": 10000,
+    "cross_cos": 0.2906142473220825,
+    "cross_cos_centered": -0.00020755371951963753,
+    "rankme": 3317.213340216062,
+    "rankme_over_d": 0.6478932305109496,
+    "top1_var": 0.12668633246644428,
+    "top10_var": 0.4182178479258411,
+    "max_rank": 5120
+   },
+   "no_pos0": {
+    "isotropy": 0.5921262283027172,
+    "n_tokens": 9938,
+    "cross_cos": 0.29473695158958435,
+    "cross_cos_centered": -0.000961389159783721,
+    "rankme": 3326.8331522642634,
+    "rankme_over_d": 0.6497721000516139,
+    "top1_var": 0.12751138566821602,
+    "top10_var": 0.41593232545918735,
+    "max_rank": 5120
+   }
+  }
+ },
+ "n_seqs": 1000,
+ "seed": 0,
+ "elapsed_s": 110.32151579856873
+}

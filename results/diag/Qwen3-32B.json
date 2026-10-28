@@ -1,0 +1,113 @@
+{
+ "model": "Qwen3-32B",
+ "path": "/dataset1/zailong/models/Qwen3-32B",
+ "n_params": 32762123264,
+ "norm_type": "Qwen3RMSNorm",
+ "norm_has_bias": false,
+ "tie_word_embeddings": false,
+ "embeddings_actually_shared": false,
+ "post_recompute_rel_err_max": 0.0025159898001970264,
+ "pre_pos0_norm_ratio_median": 2.869312047958374,
+ "beta": null,
+ "variants": {
+  "pre": {
+   "all": {
+    "isotropy": 0.7028429455012083,
+    "n_tokens": 10000,
+    "cross_cos": 0.19872114062309265,
+    "cross_cos_centered": 6.330299129331252e-06,
+    "rankme": 3719.0011058418095,
+    "rankme_over_d": 0.7263674034847284,
+    "top1_var": 0.16008301500531796,
+    "top10_var": 0.3951119361509098,
+    "max_rank": 5120
+   },
+   "no_pos0": {
+    "isotropy": 0.7014807343631984,
+    "n_tokens": 9938,
+    "cross_cos": 0.20015297830104828,
+    "cross_cos_centered": 0.0011562600266188383,
+    "rankme": 3742.5101565518057,
+    "rankme_over_d": 0.7309590149515246,
+    "top1_var": 0.1352001671040534,
+    "top10_var": 0.3666155593123903,
+    "max_rank": 5120
+   }
+  },
+  "xhat": {
+   "all": {
+    "isotropy": 0.7028429602086543,
+    "n_tokens": 10000,
+    "cross_cos": 0.19872106611728668,
+    "cross_cos_centered": -0.00063016836065799,
+    "rankme": 3810.1819624005893,
+    "rankme_over_d": 0.7441761645313651,
+    "top1_var": 0.1181121380205027,
+    "top10_var": 0.3073402353365139,
+    "max_rank": 5120
+   },
+   "no_pos0": {
+    "isotropy": 0.7014807485640049,
+    "n_tokens": 9938,
+    "cross_cos": 0.2001529037952423,
+    "cross_cos_centered": 0.0009503893670625985,
+    "rankme": 3812.5338017953513,
+    "rankme_over_d": 0.7446355081631546,
+    "top1_var": 0.11614069792698967,
+    "top10_var": 0.3041719412232717,
+    "max_rank": 5120
+   }
+  },
+  "no_bias": {
+   "all": {
+    "isotropy": 0.6572393162548542,
+    "n_tokens": 10000,
+    "cross_cos": 0.2676228880882263,
+    "cross_cos_centered": -0.0013120945077389479,
+    "rankme": 3447.3842502968805,
+    "rankme_over_d": 0.6733172363861095,
+    "top1_var": 0.33998840477680126,
+    "top10_var": 0.6084667168860374,
+    "max_rank": 5120
+   },
+   "no_pos0": {
+    "isotropy": 0.6539067385941744,
+    "n_tokens": 9938,
+    "cross_cos": 0.27396702766418457,
+    "cross_cos_centered": 0.0009022930171340704,
+    "rankme": 3449.3138088852174,
+    "rankme_over_d": 0.673694103297894,
+    "top1_var": 0.3391046499679954,
+    "top10_var": 0.6077300475026122,
+    "max_rank": 5120
+   }
+  },
+  "post": {
+   "all": {
+    "isotropy": 0.6572417962700128,
+    "n_tokens": 10000,
+    "cross_cos": 0.26762884855270386,
+    "cross_cos_centered": -0.0013080122880637646,
+    "rankme": 3447.296121918425,
+    "rankme_over_d": 0.6733000238121923,
+    "top1_var": 0.3400606763600722,
+    "top10_var": 0.6085330129893888,
+    "max_rank": 5120
+   },
+   "no_pos0": {
+    "isotropy": 0.6539098442941904,
+    "n_tokens": 9938,
+    "cross_cos": 0.27396607398986816,
+    "cross_cos_centered": 0.0008976527024060488,
+    "rankme": 3449.2310010175934,
+    "rankme_over_d": 0.6736779298862487,
+    "top1_var": 0.33914038529668444,
+    "top10_var": 0.6077976705427935,
+    "max_rank": 5120
+   }
+  }
+ },
+ "n_seqs": 1000,
+ "seed": 0,
+ "elapsed_s": 166.42585372924805
+}

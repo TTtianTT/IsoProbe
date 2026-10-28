@@ -1,0 +1,12 @@
+/dataset1/zailong/models/gpt2
+/dataset1/zailong/models/gpt2-medium
+/dataset1/zailong/models/gpt2-large
+/dataset1/zailong/models/gpt2-xl
+/dataset1/zailong/models/Qwen2.5-7B-Instruct
+/dataset1/zailong/models/Llama-3.1-8B
+/dataset1/zailong/models/Llama-3.1-8B-Instruct
+/dataset1/zailong/models/Qwen3-8B-Base
+/dataset1/zailong/models/Qwen3-8B
+/dataset1/zailong/models/Mistral-Small-24B-Instruct-2501
+/dataset1/zailong/models/Olmo-3.1-32B-Instruct
+/dataset1/zailong/models/Qwen3-32B

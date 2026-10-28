@@ -1,0 +1,74 @@
+{
+ "n_lines": 196181,
+ "n_chars": 90000184,
+ "groups": {
+  "e064e14930ca": {
+   "models": [
+    "gpt2",
+    "gpt2-medium",
+    "gpt2-large",
+    "gpt2-xl"
+   ],
+   "n_tokens": 19725238,
+   "vocab_len": 50257,
+   "n_types_ge5": 39941
+  },
+  "00ff84a0c66f": {
+   "models": [
+    "Qwen2.5-7B-Instruct",
+    "Qwen3-8B-Base"
+   ],
+   "n_tokens": 20797365,
+   "vocab_len": 151665,
+   "n_types_ge5": 42003
+  },
+  "c63f6a8a5d91": {
+   "models": [
+    "Llama-3.1-8B",
+    "Llama-3.1-8B-Instruct"
+   ],
+   "n_tokens": 20094069,
+   "vocab_len": 128256,
+   "n_types_ge5": 43377
+  },
+  "5df162970866": {
+   "models": [
+    "Qwen3-8B",
+    "Qwen3-32B"
+   ],
+   "n_tokens": 20797365,
+   "vocab_len": 151669,
+   "n_types_ge5": 42003
+  },
+  "72e9967cd9ac": {
+   "models": [
+    "Mistral-Small-24B-Instruct-2501"
+   ],
+   "n_tokens": 21012392,
+   "vocab_len": 131072,
+   "n_types_ge5": 41847
+  },
+  "175161174b1f": {
+   "models": [
+    "Olmo-3.1-32B-Instruct"
+   ],
+   "n_tokens": 20113295,
+   "vocab_len": 100278,
+   "n_types_ge5": 42933
+  }
+ },
+ "model_group": {
+  "gpt2": "e064e14930ca",
+  "gpt2-medium": "e064e14930ca",
+  "gpt2-large": "e064e14930ca",
+  "gpt2-xl": "e064e14930ca",
+  "Qwen2.5-7B-Instruct": "00ff84a0c66f",
+  "Qwen3-8B-Base": "00ff84a0c66f",
+  "Llama-3.1-8B": "c63f6a8a5d91",
+  "Llama-3.1-8B-Instruct": "c63f6a8a5d91",
+  "Qwen3-8B": "5df162970866",
+  "Qwen3-32B": "5df162970866",
+  "Mistral-Small-24B-Instruct-2501": "72e9967cd9ac",
+  "Olmo-3.1-32B-Instruct": "175161174b1f"
+ }
+}

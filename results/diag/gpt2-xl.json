@@ -1,0 +1,142 @@
+{
+ "model": "gpt2-xl",
+ "path": "/dataset1/zailong/models/gpt2-xl",
+ "n_params": 1557611200,
+ "norm_type": "LayerNorm",
+ "norm_has_bias": true,
+ "tie_word_embeddings": true,
+ "embeddings_actually_shared": true,
+ "post_recompute_rel_err_max": 0.0016731161660308155,
+ "pre_pos0_norm_ratio_median": 0.3209031820297241,
+ "beta": {
+  "beta_norm": 2.7940611839294434,
+  "median_post_token_norm": 34.13066482543945,
+  "cos(beta, mean post token)": 0.46799981594085693,
+  "beta_norm / mean_post_token_norm": 0.21113432943820953
+ },
+ "variants": {
+  "pre": {
+   "all": {
+    "isotropy": 0.41610080888867373,
+    "n_tokens": 10000,
+    "cross_cos": 0.5449653267860413,
+    "cross_cos_centered": 0.04217728599905968,
+    "rankme": 1083.7774166504578,
+    "rankme_over_d": 0.6773608854065362,
+    "top1_var": 0.7159434771626957,
+    "top10_var": 0.8019055998258977,
+    "max_rank": 1600
+   },
+   "no_pos0": {
+    "isotropy": 0.41446767756342884,
+    "n_tokens": 9936,
+    "cross_cos": 0.5444416999816895,
+    "cross_cos_centered": 0.03851757198572159,
+    "rankme": 1084.4660335388462,
+    "rankme_over_d": 0.6777912709617788,
+    "top1_var": 0.716322224795457,
+    "top10_var": 0.8015428882151,
+    "max_rank": 1600
+   }
+  },
+  "xhat": {
+   "all": {
+    "isotropy": 0.31822423118352894,
+    "n_tokens": 10000,
+    "cross_cos": 0.6304094791412354,
+    "cross_cos_centered": 0.00048636243445798755,
+    "rankme": 1332.240720830526,
+    "rankme_over_d": 0.8326504505190787,
+    "top1_var": 0.04513532148054925,
+    "top10_var": 0.20891234652507373,
+    "max_rank": 1600
+   },
+   "no_pos0": {
+    "isotropy": 0.31626864451169967,
+    "n_tokens": 9936,
+    "cross_cos": 0.6316056251525879,
+    "cross_cos_centered": 0.00032724489574320614,
+    "rankme": 1333.772879886671,
+    "rankme_over_d": 0.8336080499291694,
+    "top1_var": 0.04540649112443025,
+    "top10_var": 0.2067630032292952,
+    "max_rank": 1600
+   }
+  },
+  "no_bias": {
+   "all": {
+    "isotropy": 0.7395913318693638,
+    "n_tokens": 10000,
+    "cross_cos": 0.13009358942508698,
+    "cross_cos_centered": 0.0001842477940954268,
+    "rankme": 1337.4911209858942,
+    "rankme_over_d": 0.8359319506161839,
+    "top1_var": 0.03469555607839159,
+    "top10_var": 0.18481729176489975,
+    "max_rank": 1600
+   },
+   "no_pos0": {
+    "isotropy": 0.7379133005887271,
+    "n_tokens": 9936,
+    "cross_cos": 0.12992684543132782,
+    "cross_cos_centered": -9.377668902743608e-05,
+    "rankme": 1336.9227992589397,
+    "rankme_over_d": 0.8355767495368372,
+    "top1_var": 0.034704873284980474,
+    "top10_var": 0.18482000430849063,
+    "max_rank": 1600
+   }
+  },
+  "post": {
+   "all": {
+    "isotropy": 0.7231888663768768,
+    "n_tokens": 10000,
+    "cross_cos": 0.14932756125926971,
+    "cross_cos_centered": 0.00018474049284122884,
+    "rankme": 1337.5034069170383,
+    "rankme_over_d": 0.8359396293231489,
+    "top1_var": 0.034695378699569276,
+    "top10_var": 0.1848199782430491,
+    "max_rank": 1600
+   },
+   "no_pos0": {
+    "isotropy": 0.7215596331059932,
+    "n_tokens": 9936,
+    "cross_cos": 0.14912045001983643,
+    "cross_cos_centered": -9.339318057755008e-05,
+    "rankme": 1336.9396926917013,
+    "rankme_over_d": 0.8355873079323133,
+    "top1_var": 0.034704008458128835,
+    "top10_var": 0.1848122107190298,
+    "max_rank": 1600
+   }
+  },
+  "post_minus_beta": {
+   "all": {
+    "isotropy": 0.7395921484380961,
+    "n_tokens": 10000,
+    "cross_cos": 0.13008840382099152,
+    "cross_cos_centered": 0.00018483767053112388,
+    "rankme": 1337.501979256277,
+    "rankme_over_d": 0.8359387370351732,
+    "top1_var": 0.03469486699482103,
+    "top10_var": 0.18482831180067485,
+    "max_rank": 1600
+   },
+   "no_pos0": {
+    "isotropy": 0.737914073586464,
+    "n_tokens": 9936,
+    "cross_cos": 0.12992191314697266,
+    "cross_cos_centered": -9.34809650061652e-05,
+    "rankme": 1336.936710001654,
+    "rankme_over_d": 0.8355854437510338,
+    "top1_var": 0.034704421687177404,
+    "top10_var": 0.18482399617423967,
+    "max_rank": 1600
+   }
+  }
+ },
+ "n_seqs": 1000,
+ "seed": 0,
+ "elapsed_s": 23.848742485046387
+}
