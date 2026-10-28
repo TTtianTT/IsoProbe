@@ -6,7 +6,7 @@
 
 日期：2026-10-28。Slurm array 9725（第 1 轮，7 个任务）、9743（第 2 轮，12 个任务：新模型的 `measure.py` + 全部模型的
 final-norm 分解）和 9769（第 3 轮，12 个任务），均为 `%2`、每任务 1 张 B300，全部 COMPLETED，单任务 1–4 分钟；
-第 3 轮另有 CPU 任务 9770（词频）。第 4 轮（2026-10-28 至 29）：array 9802（STS，12 个任务）和 9832（训练动态，7 个任务、91 个 Pythia / OLMo-2 checkpoint），均为 `%2`，全部 COMPLETED。
+第 3 轮另有 CPU 任务 9770（词频）。第 4 轮（2026-10-28 至 29）：array 9802（STS，12 个任务）和 9832（训练动态，7 个任务、91 个 Pythia / OLMo-2 checkpoint），均为 `%2`，全部 COMPLETED。第 5 轮（2026-10-29）：array 9846（59 个 checkpoint 的 STS）和 9886（296 行），以及 CPU 任务 9851、9889、9908；检验预登记在 `configs/round5_prereg.md`。
 
 ## 1. 设置
 
@@ -443,8 +443,91 @@ STS-B（×100）中 raw V3 → raw V1 → 6 种变体中 V3 的最佳值：
   - **一致 / 补充：** 我们的 A2' 发现 ΔSTS(V1 − V3) 主要随 γ 对 top-1 方差占比的改变而变化（ρ = 0.71 – 0.90），与他们"方差集中度决定余弦好坏"的结论一致。我们补充的是：同一个模型在输出完全不变的 γ 折算下，方差集中度和 STS 都会大幅改变（GPT-2 small STS-B mean 26.3 vs 42.6）。所以"编码器的几何"依赖于取哪一个等价表示。
   - **不一致（A4）：** 在我们 8 个 V3 isotropy ≥ 0.59 的 LLM 上，abtt-10 从不降低 STS（32/32 ≥ 0，中位数 +2.6）。可能的原因是两边的"各向同性"不是同一组模型：他们的"分布均匀"组主要是经过对比训练的句向量模型，而我们的 LLM 即使 isotropy 高，方差也仍较集中（第三轮 V3 top-1 方差 0.02 – 0.34）。本次没有计算他们的诊断量，无法直接对齐分组。
 
+## 第五轮：A2' 的样本外检验、与"饱和"的联系、早期 unigram 阶段
+
+所有检验都先写入 `configs/round5_prereg.md` 并 commit（`5ba94c7`，任何第五轮数据分析之前）。实现时发现四处操作化需要定义（置换 p 的单/双侧、Q2-2 的时间窗、Q2-4 的 δ 集合、第 3 项的跨规模判定与"明显下降"的阈值），向用户确认后作为单独的 commit 记录（`7c8c52e`），定义本身未改动。`analyze_round5.py` 只执行预登记的检验，其余内容放在 R5.5"探索性"。
+
+Slurm：
+- 第 1 项为 array 9846（5 个任务、59 个 checkpoint）。
+- 第 2、3 项为 array 9886（10 个任务、296 行：208 个新 checkpoint 的完整测量 + 前向，76 个第四轮 Pythia checkpoint 只做前向，第三轮 12 个模型只做前向）。
+- CPU 任务（无 `--gres`）：9851（Pythia 词频）、9889 / 9908（W_U 谱与对齐）。
+
+全部 COMPLETED。冒烟测试：
+- 第 1 项：pythia-410m step 143000，A1 = 0。
+- 第 2 项：pythia-70m step 51000。Var 公式与逐位置直接求和的相对差 ≤ 2e-6，前向 loss 与 dyn 的 loss_base 一致到 5e-8。
+
+新增 208 个 Pythia checkpoint（加密窗口 + step 2/8/32/128），约 210 GB。下载中途两次停滞（与第四轮相同），关掉 huggingface_hub 的 Xet 后端（`HF_HUB_DISABLE_XET=1`）后恢复。
+
+代码：`round5_gpu.py`、`round5_cpu.py`、`analyze_round5.py`；`sts_round4.py` 只加了 `--variants`、`--no_layers`、`--out_name` 三个开关，计算不变。数值见 `results/round5/summary.md` 与 `analysis.json`。
+
+### R5.0 预登记预测与结果
+
+| # | 预登记预测 | 实际结果 | 是否一致 |
+|---|---|---|---|
+| A1 | 59 个 checkpoint 上 zscore 下 V1 − V3 = 0 | 全部为 0 | 一致 |
+| P1-1 | 5 个模型的平均 ρ(ΔSTS, Δtop1) > 0，分层置换检验单侧 p < 0.05 | 平均 ρ = +0.678（70m +0.80，160m +0.88，410m +0.68，1.4b +0.76，OLMo-2 +0.26）；p = 0.0001（10000 次置换中没有一次 ≥ 观测值） | 一致 |
+| P1-2 | ≥ 4 个模型上 \|ρ(ΔSTS, Δtop1)\| > \|ρ(ΔSTS, A_V1 − A_V3)\| | 只有 1/5（70m：0.80 vs 0.67）；其余 4 个模型 A 差值的 ρ 更大（160m 0.97，410m 0.80，1.4b 0.87，OLMo-2 0.70） | 不一致 |
+| Q2-1 | t50 的先后（不预设方向） | 70m：V1 ‖ū‖² 87000 < W_U σ₁²/Σσ² 93000 < ‖β‖/‖γ‖ 95000；160m：96000 < 104000 < 110000。两者相差 6000 / 8000 step，超过 1000 step 的分辨率 | H-rep（残差流坍缩先于头部谱尖峰） |
+| Q2-2 | 70m/160m 坍缩后两种 \|cos\| > 0.5；410m/1.4b 同期 < 0.2 | 70m：0.86 – 1.00（57 个 checkpoint），160m：0.95 – 1.00（48 个），1.4b：0.06 – 0.18。410m 在 step ≥ 87000 的 29 个 checkpoint 中有 2 个超过 0.2（step 88000 为 0.228，90000 为 0.219），之后降到 0.00 – 0.19 | 不一致（只因 410m 的两个点越过 0.2；70m/160m 的部分完全成立） |
+| Q2-3 | 410m 窗口内 loss 上升，但 V1 isotropy 始终 ≥ 0.4 | loss 最小 3.3371，终点 3.3476（+0.0105）；V1 isotropy 最小 0.454 | 按定义一致，但上升幅度在 checkpoint 间波动（3.337 – 3.372）之内，见 R5.2 |
+| Q2-4 | Spearman(½·E_t Var_p(δ), Δloss) > 0.95；70m step 143000 的矛盾消失 | ρ = 0.987（1184 个点：284 个 Pythia checkpoint + 12 个第三轮模型，× 4 个 δ 集合）；同一样本上"词表 sd"为 0.943。70m step 143000：预测量 top32 = 9.80 > all = 2.97（实际 7.92 > 3.16） | 一致 |
+| P3-1 | A 最小值、S_const 最大值、ρ(W_U m, log 词频) 最大值在同一或相邻 checkpoint | A 最小与 S_const 最大在 4 个规模上都重合或相邻（step 16 – 64），但词频相关的最大值在 4 个规模上都是 step 512 | 不一致（0/4） |
+| P3-2 | A 最小的 checkpoint 上 \|loss − H_uni\| 最小 | 4 个规模的 \|loss − H_uni\| 都在 step 256 最小；A 最小时 loss 仍比 H_uni 高 2.1 – 2.5 nats | 不一致（0/4） |
+| P3-3 | S_const(1000) ≤ 0.5 × 最大值，且 A(1000) − min A ≥ 0.2 | 比值 0.544 / 0.485 / 0.495 / 0.502（70m / 160m / 410m / 1.4b），A 回升 0.54 – 0.63 | 不一致（2/4；两个规模以 0.002 和 0.044 的差距未过阈值） |
+
+### R5.1 第 1 项：A2' 的样本外检验
+
+![r5 figC1](figs/r5_figC1_a2prime.png)
+
+- **P1-1 成立。** 在 5 个训练序列内部，Δtop1 越大（γ 让 V3 比 V1 更集中于一个方差方向），用 V1 相对 V3 的 STS 优势越大。
+- **P1-2 不成立。** 在同一个训练序列内部，A_V1 − A_V3 对 ΔSTS 的预测在 4/5 个模型上更好。两个预测量在序列内高度共线（ρ(Δtop1, A 差值) = 0.36 / 0.87 / 0.96 / 0.67 / −0.03，按 70m / 160m / 410m / 1.4b / OLMo-2），所以这一检验区分不了"方差集中"与"均值方向"。
+- **范围限制。** checkpoint 的 Δtop1 只在 −0.13 到 +0.04 之间，远小于第四轮跨模型样本中的 0.05 – 0.6（gpt2、gpt2-medium、Qwen 系列）。ΔSTS 在 −5.9 到 +1.1 之间，59 个 checkpoint 中 49 个的 95% CI 在 0 以下（V3 更好），只有 1 个在 0 以上。也就是说，这些训练中的模型没有一个像 GPT-2 small/medium 那样被 γ 推向强方差集中。第四轮 A2' 关系中起决定作用的那一端（Δtop1 > 0.2），本次样本外检验没有覆盖到。
+- **次要终点（只报告）。** STS-B EOL、SICK-R mean、SICK-R EOL 上的 ρ_top1 大多为正（0.44 – 0.92）。例外是 410m 的 SICK-R mean：ρ_top1 = −0.73，ρ_A = −0.72，方向相反。
+
+### R5.2 第 2 项：与 Godey 等人（2024）饱和现象的联系
+
+![r5 figC2](figs/r5_figC2_saturation.png)
+
+- **奇异熵的定义。** Godey 等人原文（Section 4.2）只写了"computed as the Kullback-Leibler divergence between the normalized singular value distribution and the uniform distribution"，没有公式，也没有说明用 σ 还是 σ²、是否中心化。按任务书同时报告两个版本（W_U 不中心化）：70m 的 KL(σ) 从窗口起点的 0.033 升到 0.548，KL(σ²) 从 0.23 升到 5.50；160m 为 0.033 → 0.438、0.28 → 5.75。410m / 1.4b 在窗口内几乎不变（KL(σ) 0.034 → 0.035 / 0.033 → 0.032）。
+- **头部谱的尖峰。** 70m 的 σ₁²/Σσ² 从 0.054 升到 0.921，σ₁/σ₂ 从 2.6 升到 18.6，有效秩从 495 降到 296；160m 为 0.061 → 0.906、1.9 → 11.3、743 → 495。410m / 1.4b 的 σ₁²/Σσ² 只从 0.100 升到 0.118、从 0.068 升到 0.085。
+- **先后顺序（Q2-1）。** 70m 与 160m 的顺序相同：评估 loss 的上升最早（t50 = 61000 / 90000），然后是 V1 ‖ū‖² 的坍缩（87000 / 96000），然后是头部谱尖峰（93000 / 104000），最后是 ‖β‖/‖γ‖（95000 / 110000）。按预登记判定为 H-rep。注意：评估 loss 在相邻 checkpoint 间的波动约为 ±0.02 – 0.03，而窗口内总上升只有 0.19 / 0.13，所以 loss 的 t50 不稳定（70m 的最小值出现在 step 51000，是一个低于两侧的单点）。V1、头部谱、β/γ 三条曲线都很平滑，它们之间的先后是可靠的。
+- **方向对齐（Q2-2，新发现）。** 坍缩之后，残差流的公共方向 ū 与头部第一右奇异向量几乎重合：70m step 143000 的 \|cos\| 为 0.970（V3 对 W_U）/ 0.999（V1 对 W_U·diag γ），160m 为 0.996 / 0.998。随机基线约为 0.03。ū 在 W_U 前 1 个右奇异向量上的平方占比从 0.04（70m step 50000）升到 0.94（step 143000）。410m / 1.4b 在终点的 \|cos\| 只有 0.04 / 0.10（V3 对 W_U）。也就是说，头部的尖峰方向就是残差流的均值方向。从 V1 ‖ū‖² 先于 σ₁²/Σσ² 变化来看，是残差流先集中，头部随后在同一方向上放大，而不是反过来。
+- **410m（Q2-3）。** 按预登记定义成立：终点比窗口最小值高 0.0105，V1 isotropy 最低 0.454。但这一上升小于窗口内 checkpoint 间的波动（3.337 – 3.372），不能据此认为 410m 在本评估集上出现了饱和。可以确定的只是：410m 在窗口内没有发生残差流坍缩，也没有头部谱尖峰。
+- **Δloss 的二阶预测量（Q2-4）。** ½·E_t Var_{p_t}(δ) 在 1184 个点上与实际 Δloss 的 Spearman 为 0.987，优于同一样本上"词表 sd"的 0.943。对 Δloss > 0.1 的点，预测量 / 实际的中位比值为 0.975。第四轮的矛盾（70m step 143000 前 32 维 corr 为正，但子集 Δloss 7.92 > 全部 3.16）由此得到解释：按模型自己的输出分布加权，前 32 维偏移的方差（预测量 9.80）确实大于全部维度（2.97）；在整个词表上不加权计算的 corr 不反映这一点。图 C4 左下的负 Δloss 点（−0.1 – 0）都来自早期 checkpoint，二阶预测量恒 ≥ 0，无法表示"去掉均值反而改善"的情况。
+
+![r5 figC4](figs/r5_figC4_predictor.png)
+
+### R5.3 第 3 项：早期瞬态是否就是 unigram 阶段
+
+![r5 figC3](figs/r5_figC3_early.png)
+
+- **H_uni = 7.486 nats**（add-1 平滑的 wikitext-103 train 词频，Pythia tokenizer，9.18 万个评估目标）。
+- **"常数输出"阶段与各向异性峰值重合。** 4 个规模的 A 最小值（step 16 – 64，A = 0.075 – 0.132）与 S_const 最大值（0.86 – 0.92）落在同一个或相邻的 checkpoint。在 step 0 – 64 内，S_const 与 V3 的 ‖ū‖² 几乎一一对应（Spearman 0.98 – 1.00）。所以早期的强各向异性就是"各位置输出几乎相同的 logit 向量"的阶段。
+- **但这个常数输出还不是词频先验。** A 最小时，ρ(W_U m, log 词频) 只有 0.02 – 0.27，loss 仍比 unigram 模型高 2.1 – 2.5 nats。词频相关在 step 64 – 512 之间逐步上升，到 step 512 达到最大（0.70 – 0.71）。loss 在 step 256 最接近 H_uni（差 0.07 – 0.14），此时 A 已经回升到 0.53 – 0.58，之后低于 H_uni。按预登记，P3-1 与 P3-2 都不成立（0/4）。数据支持的说法是：模型先学会"所有位置输出同一个向量"（各向异性峰值），然后才让这个公共向量变成词频先验（step 64 – 512）；两者不在同一时间。
+- **P3-3。** 到 step 1000，S_const 降到峰值的 0.49 – 0.54，A 回升 0.54 – 0.63。只有 160m 和 410m 低于预登记的 0.5 阈值，判定为 2/4，不成立。S_const 在 step 1000 之后仍有 0.44 – 0.47（step 2000 为 0.45 – 0.54），即训练后的模型仍有接近一半的 logit 方差来自位置无关的公共部分。
+
+### R5.4 与 Godey et al. 2024 的逐条对照
+
+依据：用 Undermind 读取的原文（arXiv 2404.07647）。
+
+- **"Pile 上 ≤ 410M 的模型出现饱和"（Section 3）。**
+  - 70m / 160m：一致。我们在 wikitext-103 test 上看到 70m 的 loss 从 4.31（step 51000）升到 4.50（step 143000），160m 从 3.76 升到 3.88。
+  - 410m：本次不能确认（+0.01，在波动之内）。原文的 410M 也只有文字表述，图 1、图 3 中 410M 的曲线没有明显上升。
+- **"≤ 160M 的模型最后一层各向异性陡增"（Section 4.1，平均两两余弦）。** 一致。并且我们把它定位到 final norm 之前的残差流（V1 ‖ū‖² 0.66 → 0.96），γ 与 β 只在其上略有加强（第四轮 R4.4）。原文用的是 final norm 之后的表示，没有做这一分解。
+- **"LM head 的奇异值分布先变平，然后突然变成尖峰，与性能下降大致同时"（Section 4.2，图 4、图 5）。** 一致：70m/160m 的 σ₁²/Σσ² 在窗口起点为 0.05 – 0.06，之后升到 0.91 – 0.92；KL 到均匀分布同步上升。补充：原文没有给出先后关系，我们在 1000 step 的分辨率下看到，loss 上升先于残差流坍缩，残差流坍缩先于头部尖峰（相差 6000 – 8000 step）。
+- **"后坍缩的主导成分可能与词频相关"（Discussion，作为假设）。** 部分支持：头部第一右奇异方向与残差流均值方向的 \|cos\| ≈ 0.97 – 1.00，而均值方向造成的 logit 偏移 W_U m 与 log 词频的 Spearman 在坍缩前后都约为 0.59 – 0.64。注意这一相关在不坍缩的 410m / 1.4b 中同样存在（0.63），所以它不是坍缩模型特有的。
+- **"原因是 softmax bottleneck（隐藏维度太小）"（Section 5）。** 本次没有直接检验。我们的数据只说明坍缩的方向就是残差流的公共均值方向，且残差流先变化。这与"头部容量不足迫使输出退化"的解释并不矛盾，但也没有提供直接证据。
+
+### R5.5 探索性（不在预登记内）
+
+- 第 1 项中，Δtop1 与 A 差值在训练序列内部的共线性（见 R5.1）。
+- Δloss 一阶项 E_t[δ_y − E_{p_t} δ] 的绝对值中位数为 0.036（最大 0.76），远小于二阶项。这说明预测量的高相关主要来自模型的校准，而不是巧合。
+- 早期阶段 S_const 与 ‖ū‖² 的近乎一一对应（R5.3）。
+- 70m 在 step 50000 – 70000 之间，残差流与头部尚未变化（V1 ‖ū‖² 约 0.62 – 0.66，σ₁²/Σσ² 约 0.04 – 0.05），但 loss 已开始上升。如果这不是评估噪声，饱和的起点可能早于任何几何指标的变化。本次的评估集（500 条序列、约 9 万 token）不足以确认。
+
 ## 4. 局限
 
+- 第 5 轮：第 1 项的样本外检验只覆盖了 Δtop1 ∈ [−0.13, 0.04]，且序列内两个预测量共线；第 2 项的评估 loss 在相邻 checkpoint 间波动 ±0.02 – 0.03，loss 的 t50 和 410m 的"上升"都受此限制；Godey 的奇异熵定义无法从原文确定，两个版本都报告了，但都不一定是原文的实现；第 3 项的 A 用的是 V3 的 isotropy（早期 γ = 1，与 V1 相同）。
 - 第 4 轮 A：STS 只用了两个英文数据集和两种池化，未做 STS12 – 16 等其他集合；拟合集是 WikiText 句子，与 STS 的领域不同，center / zscore / abtt 的统计量因此可能不是最优的；A2 只有 12 个点。
 - 第 4 轮 B：Pythia 每个规模只有一个训练 seed，checkpoint 间隔在 step 1000 以后为 1000 – 30000 step，"先后顺序"的判断受这一分辨率限制；OLMo-2 stage1 在 step 300 与 10000 之间没有 branch；massive activation 用的是各维 mean\|h\| 的 max/median，与文献中的单激活比值不同；偏移统计用整个词表，未按词频加权。
 - 模型集合不是设计出来的对照：只有两对 base/post-trained；参数量集中在 0.1–1.6B（GPT-2）、7–8B 和 24–33B；每个现代家族最多 3 个点。
@@ -466,4 +549,4 @@ STS-B（×100）中 raw V3 → raw V1 → 6 种变体中 V3 的最佳值：
 
 ## 文件
 
-`prepare_data.py`、`measure.py`、`diag_final_norm.py`、`analyze.py`、第 3 轮的 `round3_lib.py`、`extract_round3.py`、`analyze_round3.py`、`count_unigrams.py`、补充分析 `analyze_round3b.py`（→ `results/round3/followup.{md,json}`）、第 4 轮的 `prepare_fit_sentences.py`（→ `data/fit_sentences.jsonl`）、`sts_round4.py`、`download_round4.py`、`dyn_round4.py`、`analyze_round4.py`、`slurm/run_sts.sbatch`、`slurm/run_dyn.sbatch`、`configs/round4_ckpts.tsv`、`configs/round4_groups.txt`、`results/round4/`（`sts/`、`dyn/<model>/<revision>.json`、`sts_summary.md`、`dyn_summary.md`、`*_analysis.json`）、`cache/round4_banks/`（每个 checkpoint 的 bank，仅本地）、`slurm/run_round3.sbatch`、`slurm/unigrams.sbatch`、`results/round3/`、`cache/banks/`（每个模型 fp32 bank，已加入 `.gitignore`）、`tests/test_metrics.py`、`slurm/run_array.sbatch`（+`slurm/env.sh`；已完成的步骤会自动跳过）、`models.txt`、`models_local.md`、`results/*.json`、`results/diag/*.json`、`results/summary.{md,csv}`、`figs/*.png`、`logs/iso_97{25,43}_*.out`（仅本地，不在 git 仓库中）。冒烟测试（各 50 条）的结果在 `results/smoke/`。
+`prepare_data.py`、`measure.py`、`diag_final_norm.py`、`analyze.py`、第 3 轮的 `round3_lib.py`、`extract_round3.py`、`analyze_round3.py`、`count_unigrams.py`、补充分析 `analyze_round3b.py`（→ `results/round3/followup.{md,json}`）、第 4 轮的 `prepare_fit_sentences.py`（→ `data/fit_sentences.jsonl`）、`sts_round4.py`、`download_round4.py`、`dyn_round4.py`、`analyze_round4.py`、`slurm/run_sts.sbatch`、`slurm/run_dyn.sbatch`、`configs/round4_ckpts.tsv`、`configs/round4_groups.txt`、`results/round4/`（`sts/`、`dyn/<model>/<revision>.json`、`sts_summary.md`、`dyn_summary.md`、`*_analysis.json`）、`cache/round4_banks/`（每个 checkpoint 的 bank，仅本地）、第 5 轮的 `configs/round5_prereg.md`（预登记）、`round5_gpu.py`、`round5_cpu.py`、`analyze_round5.py`、`slurm/run_sts5.sbatch`、`slurm/run_r5gpu.sbatch`、`slurm/r5cpu.sbatch`、`slurm/unigrams5.sbatch`、`configs/round5_*.tsv|txt`、`results/round5/`（`sts/`、`dyn/`、`logit/`、`spec/`、`summary.md`、`analysis.json`、`h_uni.json`）、`cache/round5_banks/`（仅本地）、`slurm/run_round3.sbatch`、`slurm/unigrams.sbatch`、`results/round3/`、`cache/banks/`（每个模型 fp32 bank，已加入 `.gitignore`）、`tests/test_metrics.py`、`slurm/run_array.sbatch`（+`slurm/env.sh`；已完成的步骤会自动跳过）、`models.txt`、`models_local.md`、`results/*.json`、`results/diag/*.json`、`results/summary.{md,csv}`、`figs/*.png`、`logs/iso_97{25,43}_*.out`（仅本地，不在 git 仓库中）。冒烟测试（各 50 条）的结果在 `results/smoke/`。

@@ -1,0 +1,37 @@
+{
+ "model": "pythia-70m",
+ "revision": "step256",
+ "bank": "cache/round4_banks/pythia-70m/step256.pt",
+ "d": 512,
+ "W_U": {
+  "s1sq_over_sum": 0.0875352114954652,
+  "s1_over_s2": 2.5233124647644676,
+  "rank_n": 512,
+  "kl_uniform_sigma": 0.01968099523393274,
+  "kl_uniform_sigma2": 0.27944137735424945,
+  "eff_rank": 502.0218425523331
+ },
+ "W_U_folded": {
+  "s1sq_over_sum": 0.08753289768425995,
+  "s1_over_s2": 2.5212331684953435,
+  "rank_n": 512,
+  "kl_uniform_sigma": 0.01969473660156762,
+  "kl_uniform_sigma2": 0.27951839891775254,
+  "eff_rank": 502.0149441330308
+ },
+ "align_V3_WU": {
+  "abs_cos_v1": 0.7447972946598287,
+  "sub1_sq": 0.5547230101325997,
+  "sub5_sq": 0.8258660808813475,
+  "sub10_sq": 0.8976954918721941
+ },
+ "align_V1_WUgamma": {
+  "abs_cos_v1": 0.7315140434034286,
+  "sub1_sq": 0.5351127956964332,
+  "sub5_sq": 0.8169886669574685,
+  "sub10_sq": 0.892220639418773
+ },
+ "random_abs_cos": 0.03526184897173477,
+ "spearman_WUm_logfreq": 0.6490250331683982,
+ "n_tokens_ge5": 35376
+}

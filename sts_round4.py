@@ -86,6 +86,9 @@ def main():
     ap.add_argument("--max_pairs", type=int, default=0, help="smoke test: use only the first N pairs per dataset")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default="results/round4/sts/")
+    ap.add_argument("--variants", default=",".join(VARIANTS), help="subset of similarity variants (round 5: raw,center,zscore)")
+    ap.add_argument("--no_layers", action="store_true", help="skip the layer sweep")
+    ap.add_argument("--out_name", default=None, help="output file stem (default: model directory name)")
     args = ap.parse_args()
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -94,6 +97,7 @@ def main():
     torch.set_float32_matmul_precision("highest")
     path = resolve_model(args.model)
     slug = os.path.basename(path.rstrip("/"))
+    variants_run = args.variants.split(",")
     dev = "cuda:0"
     t0 = time.time()
     tok = AutoTokenizer.from_pretrained(path, local_files_only=True)
@@ -117,7 +121,8 @@ def main():
 
     d = gamma.shape[0]
     emb = {p: {v: torch.zeros(len(sents), d, dtype=torch.float64) for v in ("V1", "V3", "V3hs")} for p in POOLS}
-    lay = {p: torch.zeros(L + 1, len(sents), d, dtype=torch.float16) for p in POOLS}  # layer sweep (raw h_l)
+    lay = None if args.no_layers else {p: torch.zeros(L + 1, len(sents), d, dtype=torch.float16)
+                                       for p in POOLS}  # layer sweep (raw h_l)
     rec_err, n_tok = 0.0, {p: [] for p in POOLS}
     for i, s in enumerate(sents):
         for p in POOLS:
@@ -134,7 +139,8 @@ def main():
             sel = slice(1, T) if (p == "mean" and T > 1) else (slice(T - 1, T) if p == "eol" else slice(0, T))
             for v, H in (("V1", V["V1"]), ("V3", V["V3"]), ("V3hs", hs)):
                 emb[p][v][i] = H[sel].double().mean(0).cpu()  # pool in fp64 (see check A1)
-            lay[p][:, i] = torch.stack([h[0, sel].float().mean(0) for h in out.hidden_states]).half().cpu()
+            if lay is not None:
+                lay[p][:, i] = torch.stack([h[0, sel].float().mean(0) for h in out.hidden_states]).half().cpu()
             n_tok[p].append(T)
         if (i + 1) % 1000 == 0:
             print(f"[{slug}] {i + 1}/{len(sents)} sentences {time.time() - t0:.0f}s", flush=True)
@@ -154,17 +160,17 @@ def main():
             E = {v: emb[p][v].to(dev) for v in emb[p]}
             cos = {}
             for v in ("V1", "V3", "V3hs"):
-                for var in VARIANTS if v != "V3hs" else ("raw", "center"):
+                for var in variants_run if v != "V3hs" else ("raw", "center"):
                     c = cosines(E[v], E[v][:n_fit], var, i1, i2)
                     cos[(v, var)] = c
                     res["scores"][f"{ds}/{p}/{v}/{var}"] = spearman100(c, gold)
-            for var in VARIANTS:
+            for var in variants_run:
                 a, b = cos[("V1", var)], cos[("V3", var)]
                 dl = np.array([spearman100(a[bi], gold[bi]) - spearman100(b[bi], gold[bi]) for bi in boot])
                 pt = res["scores"][f"{ds}/{p}/V1/{var}"] - res["scores"][f"{ds}/{p}/V3/{var}"]
                 res["delta"][f"{ds}/{p}/{var}"] = {"delta": pt, "ci_lo": float(np.percentile(dl, 2.5)),
                                                    "ci_hi": float(np.percentile(dl, 97.5))}
-            for l in range(L + 1):
+            for l in range(L + 1) if lay is not None else []:
                 Hl = lay[p][l].to(dev).double()
                 for var in ("raw", "center"):
                     res["layers"][f"{ds}/{p}/{l}/{var}"] = spearman100(cosines(Hl, Hl[:n_fit], var, i1, i2), gold)
@@ -178,7 +184,7 @@ def main():
     print(f"[{slug}] check 0a max rel err {rec_err:.2e}; A1 zscore |V1-V3| max {a1:.2e} "
           f"({'pass' if a1 < 1e-6 else 'FAIL'}); {res['elapsed_s']:.0f}s", flush=True)
     os.makedirs(args.out, exist_ok=True)
-    fn = os.path.join(args.out, f"{slug}{'_smoke' if args.max_pairs else ''}.json")
+    fn = os.path.join(args.out, f"{args.out_name or slug}{'_smoke' if args.max_pairs else ''}.json")
     json.dump(res, open(fn, "w"), indent=1)
     print(f"[{slug}] wrote {fn}", flush=True)
 

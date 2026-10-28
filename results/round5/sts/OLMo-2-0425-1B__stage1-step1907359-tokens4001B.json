@@ -1,0 +1,114 @@
+{
+ "model": "stage1-step1907359-tokens4001B",
+ "path": "/dataset1/zailong/models/ckpts/OLMo-2-0425-1B/stage1-step1907359-tokens4001B",
+ "norm_type": "RMSNorm",
+ "template": "This sentence : \"{}\" means in one word:\"",
+ "n_fit": 2000,
+ "n_sentences": 10629,
+ "mean_tokens": {
+  "mean": 14.486311035845329,
+  "eol": 24.09897450371625
+ },
+ "check0a_max_rel_err": 0.0019002073677256703,
+ "scores": {
+  "stsb/mean/V1/raw": 43.70548525989012,
+  "stsb/mean/V1/center": 48.2465078295728,
+  "stsb/mean/V1/zscore": 58.324331166542784,
+  "stsb/mean/V3/raw": 47.989125579685975,
+  "stsb/mean/V3/center": 51.03311177445754,
+  "stsb/mean/V3/zscore": 58.324331166542784,
+  "stsb/mean/V3hs/raw": 47.98794058950395,
+  "stsb/mean/V3hs/center": 51.034832564375854,
+  "stsb/eol/V1/raw": 65.44193220201429,
+  "stsb/eol/V1/center": 62.24940532319373,
+  "stsb/eol/V1/zscore": 69.93730687907309,
+  "stsb/eol/V3/raw": 65.84668411916863,
+  "stsb/eol/V3/center": 62.92766960499762,
+  "stsb/eol/V3/zscore": 69.93730687907309,
+  "stsb/eol/V3hs/raw": 65.8434576380718,
+  "stsb/eol/V3hs/center": 62.93525303820389,
+  "sickr/mean/V1/raw": 55.48525910369333,
+  "sickr/mean/V1/center": 56.30603271562177,
+  "sickr/mean/V1/zscore": 59.042033480584436,
+  "sickr/mean/V3/raw": 56.80306845998656,
+  "sickr/mean/V3/center": 57.2180289774874,
+  "sickr/mean/V3/zscore": 59.042033480584436,
+  "sickr/mean/V3hs/raw": 56.80165747835927,
+  "sickr/mean/V3hs/center": 57.215869876767044,
+  "sickr/eol/V1/raw": 63.878368367351904,
+  "sickr/eol/V1/center": 64.24851832534716,
+  "sickr/eol/V1/zscore": 68.42137334073587,
+  "sickr/eol/V3/raw": 63.85396493755252,
+  "sickr/eol/V3/center": 64.32757353759607,
+  "sickr/eol/V3/zscore": 68.42137334073587,
+  "sickr/eol/V3hs/raw": 63.85329700368595,
+  "sickr/eol/V3hs/center": 64.32782658505202
+ },
+ "delta": {
+  "stsb/mean/raw": {
+   "delta": -4.2836403197958575,
+   "ci_lo": -5.203088419663329,
+   "ci_hi": -3.3721507331535716
+  },
+  "stsb/mean/center": {
+   "delta": -2.786603944884739,
+   "ci_lo": -3.3888848974628134,
+   "ci_hi": -2.1968581949118695
+  },
+  "stsb/mean/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  },
+  "stsb/eol/raw": {
+   "delta": -0.4047519171543428,
+   "ci_lo": -0.6915037188205989,
+   "ci_hi": -0.11684459292716164
+  },
+  "stsb/eol/center": {
+   "delta": -0.6782642818038909,
+   "ci_lo": -0.9578427783457931,
+   "ci_hi": -0.39118268800543105
+  },
+  "stsb/eol/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  },
+  "sickr/mean/raw": {
+   "delta": -1.3178093562932318,
+   "ci_lo": -1.4757697250445339,
+   "ci_hi": -1.1570516010422716
+  },
+  "sickr/mean/center": {
+   "delta": -0.9119962618656317,
+   "ci_lo": -1.0520541383291868,
+   "ci_hi": -0.770668177008237
+  },
+  "sickr/mean/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  },
+  "sickr/eol/raw": {
+   "delta": 0.024403429799384924,
+   "ci_lo": -0.05356241575337446,
+   "ci_hi": 0.1119046312829342
+  },
+  "sickr/eol/center": {
+   "delta": -0.07905521224890322,
+   "ci_lo": -0.15885198207364332,
+   "ci_hi": 0.005352016017492993
+  },
+  "sickr/eol/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  }
+ },
+ "layers": {},
+ "n_boot": 1000,
+ "checkA1_zscore_max_abs_delta": 0.0,
+ "checkA1_pass": true,
+ "elapsed_s": 180.76136136054993
+}

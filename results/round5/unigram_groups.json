@@ -1,0 +1,17 @@
+{
+ "n_lines": 196181,
+ "n_chars": 90000184,
+ "groups": {
+  "8fed1dc1b157": {
+   "models": [
+    "step143000"
+   ],
+   "n_tokens": 19854711,
+   "vocab_len": 50277,
+   "n_types_ge5": 35376
+  }
+ },
+ "model_group": {
+  "step143000": "8fed1dc1b157"
+ }
+}
