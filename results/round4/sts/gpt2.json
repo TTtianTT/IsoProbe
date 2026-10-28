@@ -1,0 +1,303 @@
+{
+ "model": "gpt2",
+ "path": "/dataset1/zailong/models/gpt2",
+ "norm_type": "LayerNorm",
+ "template": "This sentence : \"{}\" means in one word:\"",
+ "n_fit": 2000,
+ "n_sentences": 10629,
+ "mean_tokens": {
+  "mean": 14.377269733747296,
+  "eol": 23.992567503998494
+ },
+ "check0a_max_rel_err": 0.0022936188615858555,
+ "scores": {
+  "stsb/mean/V1/raw": 42.604096100843,
+  "stsb/mean/V1/center": 40.85729160491814,
+  "stsb/mean/V1/zscore": 47.31176498747577,
+  "stsb/mean/V1/abtt1": 44.768566455834424,
+  "stsb/mean/V1/abtt3": 45.85977404545941,
+  "stsb/mean/V1/abtt10": 46.944451475579456,
+  "stsb/mean/V3/raw": 26.326568376225108,
+  "stsb/mean/V3/center": 9.342413115529515,
+  "stsb/mean/V3/zscore": 47.31176498747577,
+  "stsb/mean/V3/abtt1": 26.263661959475144,
+  "stsb/mean/V3/abtt3": 29.170048184692966,
+  "stsb/mean/V3/abtt10": 45.68873458300171,
+  "stsb/mean/V3hs/raw": 26.275569358402656,
+  "stsb/mean/V3hs/center": 9.366435681815837,
+  "stsb/eol/V1/raw": 67.31358215979037,
+  "stsb/eol/V1/center": 70.6888905099108,
+  "stsb/eol/V1/zscore": 70.97895745999912,
+  "stsb/eol/V1/abtt1": 70.68101936209625,
+  "stsb/eol/V1/abtt3": 71.33432233998266,
+  "stsb/eol/V1/abtt10": 71.73035439704246,
+  "stsb/eol/V3/raw": 52.97050933074034,
+  "stsb/eol/V3/center": 36.098076218047495,
+  "stsb/eol/V3/zscore": 70.97895745999912,
+  "stsb/eol/V3/abtt1": 58.77386989414545,
+  "stsb/eol/V3/abtt3": 64.39668518848475,
+  "stsb/eol/V3/abtt10": 70.3482444312333,
+  "stsb/eol/V3hs/raw": 52.914637032204105,
+  "stsb/eol/V3hs/center": 36.25645211444239,
+  "sickr/mean/V1/raw": 52.35329415586306,
+  "sickr/mean/V1/center": 53.004129485430894,
+  "sickr/mean/V1/zscore": 53.50550767348141,
+  "sickr/mean/V1/abtt1": 53.24002297870544,
+  "sickr/mean/V1/abtt3": 53.18083453477859,
+  "sickr/mean/V1/abtt10": 54.23025230970284,
+  "sickr/mean/V3/raw": 43.588788214288314,
+  "sickr/mean/V3/center": 34.94911404859305,
+  "sickr/mean/V3/zscore": 53.50550767348141,
+  "sickr/mean/V3/abtt1": 42.22714108116452,
+  "sickr/mean/V3/abtt3": 43.23515521139019,
+  "sickr/mean/V3/abtt10": 53.92610545001493,
+  "sickr/mean/V3hs/raw": 43.58207729025519,
+  "sickr/mean/V3hs/center": 34.957769633433124,
+  "sickr/eol/V1/raw": 64.66780527354412,
+  "sickr/eol/V1/center": 65.5022496350701,
+  "sickr/eol/V1/zscore": 65.47441132633699,
+  "sickr/eol/V1/abtt1": 65.5211073506268,
+  "sickr/eol/V1/abtt3": 65.54398139693484,
+  "sickr/eol/V1/abtt10": 65.61237923065771,
+  "sickr/eol/V3/raw": 55.88043026739851,
+  "sickr/eol/V3/center": 40.452656755784346,
+  "sickr/eol/V3/zscore": 65.47441132633699,
+  "sickr/eol/V3/abtt1": 58.953729124669664,
+  "sickr/eol/V3/abtt3": 60.71600412293549,
+  "sickr/eol/V3/abtt10": 65.10793836534745,
+  "sickr/eol/V3hs/raw": 55.853607150541194,
+  "sickr/eol/V3hs/center": 40.4122753693207
+ },
+ "delta": {
+  "stsb/mean/raw": {
+   "delta": 16.277527724617894,
+   "ci_lo": 12.650593186033486,
+   "ci_hi": 19.654338957043834
+  },
+  "stsb/mean/center": {
+   "delta": 31.51487848938862,
+   "ci_lo": 27.223567526692293,
+   "ci_hi": 35.74496630135448
+  },
+  "stsb/mean/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  },
+  "stsb/mean/abtt1": {
+   "delta": 18.50490449635928,
+   "ci_lo": 14.869446189250663,
+   "ci_hi": 22.24379136173063
+  },
+  "stsb/mean/abtt3": {
+   "delta": 16.689725860766444,
+   "ci_lo": 13.465028472029847,
+   "ci_hi": 19.810025462430815
+  },
+  "stsb/mean/abtt10": {
+   "delta": 1.2557168925777447,
+   "ci_lo": -0.0884290893155862,
+   "ci_hi": 2.5367451321361254
+  },
+  "stsb/eol/raw": {
+   "delta": 14.34307282905003,
+   "ci_lo": 11.998329967490694,
+   "ci_hi": 16.603915187111063
+  },
+  "stsb/eol/center": {
+   "delta": 34.59081429186331,
+   "ci_lo": 30.490367544982295,
+   "ci_hi": 38.75376646171388
+  },
+  "stsb/eol/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  },
+  "stsb/eol/abtt1": {
+   "delta": 11.907149467950802,
+   "ci_lo": 9.595623894922959,
+   "ci_hi": 14.328422095791574
+  },
+  "stsb/eol/abtt3": {
+   "delta": 6.93763715149791,
+   "ci_lo": 5.443974622183603,
+   "ci_hi": 8.461055446557511
+  },
+  "stsb/eol/abtt10": {
+   "delta": 1.382109965809164,
+   "ci_lo": 0.7314847407298928,
+   "ci_hi": 2.018678371285153
+  },
+  "sickr/mean/raw": {
+   "delta": 8.764505941574747,
+   "ci_lo": 7.825551291876928,
+   "ci_hi": 9.739339539718987
+  },
+  "sickr/mean/center": {
+   "delta": 18.05501543683784,
+   "ci_lo": 16.614153628529195,
+   "ci_hi": 19.4899071732971
+  },
+  "sickr/mean/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  },
+  "sickr/mean/abtt1": {
+   "delta": 11.012881897540922,
+   "ci_lo": 10.054996441806543,
+   "ci_hi": 12.109401626231381
+  },
+  "sickr/mean/abtt3": {
+   "delta": 9.945679323388397,
+   "ci_lo": 9.123001222105927,
+   "ci_hi": 10.849808768554018
+  },
+  "sickr/mean/abtt10": {
+   "delta": 0.30414685968791133,
+   "ci_lo": 0.03638481953201964,
+   "ci_hi": 0.5872697949669285
+  },
+  "sickr/eol/raw": {
+   "delta": 8.78737500614561,
+   "ci_lo": 8.038349739066144,
+   "ci_hi": 9.57023394098224
+  },
+  "sickr/eol/center": {
+   "delta": 25.049592879285754,
+   "ci_lo": 23.663509281263906,
+   "ci_hi": 26.491955751315107
+  },
+  "sickr/eol/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  },
+  "sickr/eol/abtt1": {
+   "delta": 6.5673782259571425,
+   "ci_lo": 5.8220395440243715,
+   "ci_hi": 7.271286799758946
+  },
+  "sickr/eol/abtt3": {
+   "delta": 4.827977273999352,
+   "ci_lo": 4.319107024596735,
+   "ci_hi": 5.349690369485716
+  },
+  "sickr/eol/abtt10": {
+   "delta": 0.5044408653102579,
+   "ci_lo": 0.35661454673915144,
+   "ci_hi": 0.6573380639720693
+  }
+ },
+ "layers": {
+  "stsb/mean/0/raw": 48.3364665760346,
+  "stsb/mean/0/center": 35.253669160188466,
+  "stsb/mean/1/raw": 51.94154476494687,
+  "stsb/mean/1/center": 52.24596674978233,
+  "stsb/mean/2/raw": 51.0985450859877,
+  "stsb/mean/2/center": 53.03344506872427,
+  "stsb/mean/3/raw": 52.07610288554891,
+  "stsb/mean/3/center": 52.784398754024764,
+  "stsb/mean/4/raw": 51.28661262599829,
+  "stsb/mean/4/center": 52.04307709693043,
+  "stsb/mean/5/raw": 51.441748755112215,
+  "stsb/mean/5/center": 50.72419562330055,
+  "stsb/mean/6/raw": 50.99173378652978,
+  "stsb/mean/6/center": 49.59776521415899,
+  "stsb/mean/7/raw": 50.36401702135971,
+  "stsb/mean/7/center": 48.36533739887416,
+  "stsb/mean/8/raw": 49.91788047318553,
+  "stsb/mean/8/center": 47.728289380066954,
+  "stsb/mean/9/raw": 48.401252703471016,
+  "stsb/mean/9/center": 45.92309554092769,
+  "stsb/mean/10/raw": 47.46735307592261,
+  "stsb/mean/10/center": 45.292886699942756,
+  "stsb/mean/11/raw": 46.91045304665305,
+  "stsb/mean/11/center": 43.65369411060634,
+  "stsb/mean/12/raw": 26.25427870646215,
+  "stsb/mean/12/center": 9.358475195866548,
+  "stsb/eol/0/raw": 3.6276777200373456,
+  "stsb/eol/0/center": -1.2202446317937277,
+  "stsb/eol/1/raw": 17.581005929386393,
+  "stsb/eol/1/center": 10.180935121361268,
+  "stsb/eol/2/raw": 20.051140298358256,
+  "stsb/eol/2/center": 11.28871562219627,
+  "stsb/eol/3/raw": 20.85003648906378,
+  "stsb/eol/3/center": 14.5140451733706,
+  "stsb/eol/4/raw": 19.387549461576604,
+  "stsb/eol/4/center": 15.020560098153846,
+  "stsb/eol/5/raw": 19.4696012696727,
+  "stsb/eol/5/center": 15.150115512282797,
+  "stsb/eol/6/raw": 18.604537591227206,
+  "stsb/eol/6/center": 13.229114023517655,
+  "stsb/eol/7/raw": 21.738349386249773,
+  "stsb/eol/7/center": 18.412122949209202,
+  "stsb/eol/8/raw": 23.719776211412753,
+  "stsb/eol/8/center": 21.970115185897725,
+  "stsb/eol/9/raw": 45.26861673574486,
+  "stsb/eol/9/center": 42.74261029730889,
+  "stsb/eol/10/raw": 58.60540978398808,
+  "stsb/eol/10/center": 60.51452471939049,
+  "stsb/eol/11/raw": 65.95663668488716,
+  "stsb/eol/11/center": 68.48672793772985,
+  "stsb/eol/12/raw": 52.914637032204105,
+  "stsb/eol/12/center": 36.25645211444239,
+  "sickr/mean/0/raw": 51.485761495278105,
+  "sickr/mean/0/center": 53.06518062609955,
+  "sickr/mean/1/raw": 55.58922330615079,
+  "sickr/mean/1/center": 58.60549543627182,
+  "sickr/mean/2/raw": 56.15909882091075,
+  "sickr/mean/2/center": 60.14375679746503,
+  "sickr/mean/3/raw": 57.34339148081511,
+  "sickr/mean/3/center": 60.2573059021183,
+  "sickr/mean/4/raw": 57.91562680605517,
+  "sickr/mean/4/center": 60.26647455249756,
+  "sickr/mean/5/raw": 58.491065351473104,
+  "sickr/mean/5/center": 60.166075006970374,
+  "sickr/mean/6/raw": 58.9650883169252,
+  "sickr/mean/6/center": 59.885739363410984,
+  "sickr/mean/7/raw": 58.19000071920293,
+  "sickr/mean/7/center": 58.69839862596466,
+  "sickr/mean/8/raw": 58.07074665163471,
+  "sickr/mean/8/center": 58.0853471481539,
+  "sickr/mean/9/raw": 56.31433501564297,
+  "sickr/mean/9/center": 56.04876606826505,
+  "sickr/mean/10/raw": 55.27298917559108,
+  "sickr/mean/10/center": 54.64974494694205,
+  "sickr/mean/11/raw": 54.564092430228214,
+  "sickr/mean/11/center": 54.05059521595322,
+  "sickr/mean/12/raw": 43.5781451298746,
+  "sickr/mean/12/center": 34.95527088661138,
+  "sickr/eol/0/raw": 21.069808839916096,
+  "sickr/eol/0/center": 17.426637840672377,
+  "sickr/eol/1/raw": 39.531960499328065,
+  "sickr/eol/1/center": 38.031005804151775,
+  "sickr/eol/2/raw": 41.29381672054348,
+  "sickr/eol/2/center": 38.784530061169455,
+  "sickr/eol/3/raw": 42.86987627240367,
+  "sickr/eol/3/center": 41.14728364150504,
+  "sickr/eol/4/raw": 45.04139759142941,
+  "sickr/eol/4/center": 43.198508545771254,
+  "sickr/eol/5/raw": 45.43474654024784,
+  "sickr/eol/5/center": 42.977676227152,
+  "sickr/eol/6/raw": 43.67657123858854,
+  "sickr/eol/6/center": 41.09231167842628,
+  "sickr/eol/7/raw": 43.990375123360366,
+  "sickr/eol/7/center": 42.29177506088301,
+  "sickr/eol/8/raw": 40.8644885600862,
+  "sickr/eol/8/center": 40.34331532219612,
+  "sickr/eol/9/raw": 49.04660465878915,
+  "sickr/eol/9/center": 49.5802234494487,
+  "sickr/eol/10/raw": 55.023974826784226,
+  "sickr/eol/10/center": 57.12549197922788,
+  "sickr/eol/11/raw": 61.849493469059325,
+  "sickr/eol/11/center": 63.30507556560935,
+  "sickr/eol/12/raw": 55.853607150541194,
+  "sickr/eol/12/center": 40.4122753693207
+ },
+ "n_boot": 1000,
+ "checkA1_zscore_max_abs_delta": 0.0,
+ "checkA1_pass": true,
+ "elapsed_s": 207.0562562942505
+}

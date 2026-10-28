@@ -105,7 +105,7 @@ def select_layers(L):
 
 def final_norm_module(model):
     base = model.base_model
-    for name in ("norm", "ln_f", "final_layernorm"):
+    for name in ("norm", "ln_f", "final_layernorm", "final_layer_norm"):  # final_layer_norm: GPT-NeoX (Pythia)
         if hasattr(base, name):
             return getattr(base, name)
     return None

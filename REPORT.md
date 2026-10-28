@@ -6,7 +6,7 @@
 
 日期：2026-10-28。Slurm array 9725（第 1 轮，7 个任务）、9743（第 2 轮，12 个任务：新模型的 `measure.py` + 全部模型的
 final-norm 分解）和 9769（第 3 轮，12 个任务），均为 `%2`、每任务 1 张 B300，全部 COMPLETED，单任务 1–4 分钟；
-第 3 轮另有 CPU 任务 9770（词频）。
+第 3 轮另有 CPU 任务 9770（词频）。第 4 轮（2026-10-28 至 29）：array 9802（STS，12 个任务）和 9832（训练动态，7 个任务、91 个 Pythia / OLMo-2 checkpoint），均为 `%2`，全部 COMPLETED。
 
 ## 1. 设置
 
@@ -326,8 +326,127 @@ Slurm array 9769（12 个任务，`%2`，每任务 1 张 B300；gpt2 与 Qwen3-8
 - Olmo-3.1 是唯一的 post-sublayer norm 模型，也是 V1、V3 下最各向同性、第一轮中唯一没有位置 0 范数尖峰的模型。只有这一个样本，无法区分是 norm 位置、QK-norm 形式还是训练数据造成的。
 - 这些协变量与模型家族、规模、训练数据完全混杂，本表只用于描述，不支持因果推断。
 
+## 第四轮：下游意义（A）与训练动态（B）
+
+Slurm：A 为 array 9802（12 个任务，`%2`，每任务 1 张 B300，`--time=00:40:00`，单任务 6–22 分钟；gpt2 沿用 srun 冒烟测试的完整输出）；B 为 array 9832（7 个任务、91 个 checkpoint，`%2`，单任务 2–5 分钟）。冒烟测试：A 用 srun 跑 gpt2，B 用 srun 跑 pythia-70m 的 step0 与 step143000、OLMo-2 的 main。B 的 checkpoint 在 A 运行期间于登录节点下载，共 233 GB（剩余空间约 39 TB，不需要边跑边删），存放在 `/dataset1/zailong/models/ckpts/<model>/<revision>/`。代码：`prepare_fit_sentences.py`、`sts_round4.py`、`download_round4.py`、`dyn_round4.py`、`analyze_round4.py`；完整数值见 `results/round4/sts_summary.md` 与 `results/round4/dyn_summary.md`。
+
+### R4.0 预期与结果对照
+
+| # | 预期（假设） | 实际结果 | 是否一致 |
+|---|---|---|---|
+| A1 | zscore 下 V1 与 V3 的 STS 完全相同，差值 < 1e-6 | 第一次实现失败：差值 1.3e-5，修正后仍为 5.1e-6（见 R4.1）。修正后 12 个模型 × 2 种池化 × 2 个数据集的差值全部为 0 | 一致（修正实现之后） |
+| A2 | raw 下 12 个模型的 ΔSTS(V1 − V3) 与 (A_V1 − A_V3) 正相关 | ρ = +0.48 / +0.46 / +0.48 / +0.20（STS-B mean / STS-B EOL / SICK-R mean / SICK-R EOL），p = 0.09 – 0.51 | 方向一致，但弱且不显著；gpt2-medium 是明显反例 |
+| A2' | （探索性，非预设）ΔSTS 与 γ 对**方差集中度**的影响相关 | ρ(ΔSTS, top1(V3) − top1(V1)) = +0.71 – +0.90，p ≤ 0.002 | — |
+| A3 | center 带来大部分提升，并显著缩小 V1/V3 差距 | center 只拿到最佳变体提升的中位数 13%；只在 17/48 个"模型 × 设置"中缩小了差距；在 GPT-2 small/medium、Qwen3-8B(-Base)、Qwen3-32B 的 V3 上 center 反而大幅降低 STS（例如 GPT-2 small STS-B mean 26.3 → 9.3） | 不一致 |
+| A4 | abtt-k 在各向同性的模型上可能略降 | 8 个 V3 isotropy ≥ 0.59 的模型 × 4 个设置：abtt-10 相对 raw 和 center 都没有下降（32/32 ≥ 0，中位 +2.6）；abtt-1 偶尔小幅下降（最低 −0.7，相对 center） | 基本不一致（见 R4.6 对照） |
+| 0a / 1a | Pythia、OLMo-2 的 hook 与 W_U 读取正确 | 91 个 checkpoint：0a ≤ 1.8e-3；γ 折算最大相对误差 ≤ 3.3e-6，argmax 一致率 ≥ 0.99972 | 一致 |
+| B1 | Pythia-410m/1.4b 训练后期 V1 一直偏低，只有 V3 被 γ 拉高；‖β‖ 不是主因 | 训练中段（step 8000 – 80000）成立：V1 降到 0.39 – 0.57，V3 保持 0.62 – 0.66，V3 前 10 维的 \|γ\| 百分位为 0.00 – 0.05。但到最终 checkpoint，V1 回升到 0.52 / 0.54，γ 的作用只剩 +0.03 / +0.05。‖β‖/‖γ‖ 始终 ≤ 0.04，且后期在下降 | 部分一致：中段一致，终点 V1 本身已是中等各向同性 |
+| B2 | 70m（和 160m）中，均值维度先在残差流出现（H1）还是 γ 尖峰先出现（H2） | V1 的 ‖ū‖² 从 step 2000 开始持续上升（70m：0.25 → 0.66，step 50000）；同期 γ 压低这些维度（\|γ\| 百分位 0.01 – 0.03，到 step 13000），V3 的 ‖ū‖² 保持 0.24 – 0.39。70m 在 step 32000 时 γ 转为放大（百分位 0.98），晚于残差流均值的出现约 3 万步。γ 始终没有尖峰（max/median ≤ 2.5，GPT-2 small 为 13.9）。最后的坍缩（70m 在 step 80000 – 143000，160m 在 110000 – 143000）主要发生在 V1 本身 | 支持 H1，H2 不成立；但最终的各向异性来自残差流，不是 γ 放大 |
+| B3 | 是否出现类似 GPT-2 small 第 496 维的"bark"维度 | 按预先写在代码里的标准（‖ū‖² 占比 ≥ 0.3、\|可加占比\| < 0.05、偏移 sd/\|均值\| < 0.05），91 个 checkpoint 中都没有。最接近的是 70m step 80000 的第 169 维（占比 0.28、可加占比 +0.009，但 sd/\|均值\| = 0.21） | 未出现 |
+| B4 | massive activation 出现后，其维度的 \|γ\| 百分位下降，且压制滞后于出现 | 中间/后部层的 massive 维度：\|γ\| 百分位降到 ≤ 0.05 与比值上升同时或更早（step 1000 – 8000），看不到滞后。前部层（第 2 – 3 层）的 massive 维度没有被压低（百分位约 0.5） | 下降成立；"滞后"在本次 checkpoint 分辨率下不成立 |
+| B5 | 是否出现 Qwen 式抵消（corr(δ_S, δ_R) < 0 且子集 Δloss > 全部） | 训练过的 checkpoint 中只出现一次：pythia-70m step 110000，k=16。step 0 – 4 也被标记，但那时所有 Δloss ≈ 0（−0.1 – 0），无意义 | 基本未出现 |
+| B6 | 若 Olmo-3.1 无位置 0 尖峰是架构造成的，OLMo-2-1B 全程比值 < 5 | OLMo-2 全部 15 个 checkpoint 的最大比值 ≤ 2.9。Pythia 四个规模在 step 3000 – 13000 之后都超过 5，最终为 10.6 – 47.5 | 一致（与架构解释相容，但不构成证明） |
+
+### R4.1 A 的设置与 A1 的实现修正
+
+- **句向量。** 每个句子单独前向（batch 1），`add_special_tokens=True`。mean 池化取最后一层除位置 0 以外的平均；PromptEOL 用模板 `This sentence : "[X]" means in one word:"` 取最后一个 token。V1 先在 token 级计算（round3_lib 的 `variants`），再池化。
+- **拟合集。** `data/fit_sentences.jsonl` 是从 `data/samples.jsonl` 中按 WikiText 的 " ." 切出的 2000 个句子（6 – 50 词，seed 0）。还原了 ` @-@ `、` , ` 等分词痕迹，使其形式接近 STS 文本。center / zscore / abtt-k 的均值、标准差和主成分都只在这 2000 句上估计。
+- **数据集。** STS-B test（1379 对，`sentence-transformers/stsb`）和 SICK-R test（9927 对，`mteb/sickr-sts`）；两个数据集名称和 split 都存在。
+- **A1 的两次失败与修正。** 第一版 V3 用 fp32 计算（γ⊙V1+β），A1 差值为 1.3e-5。改为 fp64 计算 V3 后仍为 5.1e-6，原因是 V1 的池化仍在 fp32 里做。两处都改为 fp64 后，所有设置的差值都为 0。原因：GPT-2 第 496 维这类均值维度的值约为 200，波动只有约 0.5；fp32 的舍入误差在 zscore 去均值之后被放大到约 1e-5。这是数值精度问题，不是逻辑错误。两次失败的输出保存在 `results/round4/sts/gpt2_fp32*_A1fail.json`。
+- **V3 的来源。** V3 用的是 fp64 重建的 γ⊙V1+β，而不是 bf16 的 `hidden_states[-1]`。两者在 raw 下的 STS 差别 ≤ 0.06（`sts_summary.md` 的 Checks 表）。
+
+### R4.2 A 的结果
+
+![r4 figA1](figs/r4_figA1_dsts_vs_dA.png)
+
+STS-B（×100）中 raw V3 → raw V1 → 6 种变体中 V3 的最佳值：
+
+| model | mean 池化 | PromptEOL |
+|---|---|---|
+| gpt2 | 26.3 → 42.6 → 47.3 | 53.0 → 67.3 → 71.0 |
+| gpt2-medium | 17.2 → 38.0 → 50.6 | 46.8 → 56.2 → 65.0 |
+| gpt2-large | 46.0 → 43.9 → 51.7 | 70.1 → 69.2 → 72.5 |
+| gpt2-xl | 47.3 → 42.8 → 52.5 | 66.7 → 65.1 → 70.6 |
+| Qwen2.5-7B-Instruct | 37.5 → 43.6 → 52.1 | 74.0 → 75.1 → 75.1 |
+| Llama-3.1-8B | 45.8 → 43.6 → 50.0 | 72.1 → 70.9 → 74.6 |
+| Llama-3.1-8B-Instruct | 48.0 → 45.4 → 52.9 | 74.3 → 73.4 → 75.5 |
+| Qwen3-8B-Base | 30.9 → 34.7 → 44.3 | 72.1 → 72.1 → 72.1 |
+| Qwen3-8B | 29.4 → 35.4 → 49.1 | 69.7 → 72.7 → 73.0 |
+| Mistral-Small-24B | 39.7 → 46.1 → 51.9 | 72.0 → 73.3 → 73.4 |
+| Olmo-3.1-32B | 47.2 → 45.9 → 56.8 | 68.9 → 68.6 → 69.1 |
+| Qwen3-32B | 28.9 → 40.3 → 48.4 | 68.4 → 71.5 → 73.2 |
+
+- **V1 − V3（raw）。** γ 放大均值维度的模型（GPT-2 small/medium、Qwen 系列、Mistral）用 V1 更好：STS-B mean 上 +3.8 到 +20.8，95% CI 都不含 0。γ 压低均值维度的模型（gpt2-large/xl、Llama 两个版本）用 V1 更差：−2.1 到 −4.5。Olmo 为 −1.3。
+- **A2 的反例。** gpt2-medium 的 A_V1 − A_V3 = −0.11（γ 提高了 isotropy），但 V1 在 STS 上反而好得多（STS-B mean +20.8）。原因是它的 V3 中方差几乎全部集中在一维（round 3：top-1 方差占比 0.92）。这种集中不体现在 isotropy A（均值方向）上，却直接损害余弦。按方差集中度的变化排序（A2'），12 个模型的相关为 ρ = 0.71 – 0.90。即 γ 对 STS 的影响主要通过方差集中度，而不是通过均值方向。这一分析是看到 A2 结果之后补做的，不是预设假设。
+- **最佳变体。** 48 个"模型 × 设置"中，V3 的最佳变体在 47 个里是 zscore 或 abtt-10，例外是 Qwen3-8B-Base 的 STS-B EOL（raw 最好）。zscore 消去了 γ 和 β（A1），所以"用 V1 还是 V3"的差别在 zscore 下完全消失。
+- **A3 不成立。** 只做 center 在多数情况下帮助很小（中位数只拿到最佳提升的 13%）。在方差高度集中的 V3 上，center 会大幅变差（GPT-2 small STS-B mean 26.3 → 9.3，gpt2-medium 17.2 → 3.5）：去掉均值之后，余弦几乎只由一两个 γ 放大的高方差维度决定。
+- **层扫描（只对原始 `hidden_states[l]`，raw 与 center）。** 中间层没有 γ，所以"V1 vs V3"只在最后一层有定义，扫描回答的是"最后一层是不是最好的层"。PromptEOL 下最好的 block 都在最后 4 个 block 内。最后一层 V1 与最好 block 之差为 −2.2 到 +4.7：gpt2 的 V1 比任何 block 都好；Llama-3.1-8B 差距最大（STS-B 最好 73.6，V1 68.9）；Qwen3-32B 为 73.0 vs V1 71.5，V3 65.4。mean 池化下，最好的往往是前部或中部 block，或 embedding 层（Olmo embedding 66.4 > 最后一层 49.5），最后一层并不是 mean 池化的好选择。
+
+### R4.3 B 的设置与架构核对
+
+- **Pythia（GPT-NeoX）。** LayerNorm（含 β），pre-norm，attention 与 MLP 并行残差（`use_parallel_residual=True`），无 QK-norm，不共享 embedding（`tie_word_embeddings=False`，加载后 head 与输入 embedding 不是同一张量）。final norm 为 `gpt_neox.final_layer_norm`（已加入 `measure.final_norm_module` 的候选名）。**输出头在 transformers 5.16 中名为 `lm_head`**：checkpoint 里的 `embed_out.*` 在加载时被 `conversion_mapping` 重命名，所以任务书预期的 `embed_out` 以实际代码为准，W_U 统一用 `get_output_embeddings()` 读取。词表行数 50304，tokenizer 为 50277，多出的是填充行，偏移统计只用前 50277 行。tokenizer 不加 BOS，位置 0 是普通文本 token。
+- **OLMo-2-0425-1B。** RMSNorm（无 β），post-sublayer norm（`post_attention_layernorm` / `post_feedforward_layernorm` 作用在子层输出上，再加回残差），QK-norm 作用在整个 q/k 宽度上，不共享 embedding，final norm 为 `model.norm`，head 为 `lm_head`，不加 BOS。checkpoint 用 stage1 的 14 个 branch，按 token 数近似对数均匀选取，加上 main。stage1 在 step 300 与 10000 之间没有可用的 branch。main 是 stage2 三个 ingredient 合并后的最终模型，图中画在 4052B token 处。
+- **每个 checkpoint 的测量。** 与第三轮相同的 1000 条序列、bank 位置和估计/评估划分（前 500 条估计均值，后 500 条评估）。偏移 δ 的统计用整个词表，不按词频加权（与第三轮的"出现 ≥ 5 次"不同）。
+- **step 0 的 γ 百分位。** step 0 时 γ 全为 1，百分位按平均秩计算，所有维度都是 0.5。
+
+### R4.4 B 的结果
+
+![r4 figB1](figs/r4_figB1_isotropy_gamma.png)
+
+任务书要求把 \|γ\| 尖峰度和 ‖β‖/‖γ‖ 叠加在 isotropy 图上；这里改为共享横轴的三行小图，避免双纵轴。
+
+- **早期瞬态。** 所有 Pythia 在 step 16 – 64 有一次短暂的强各向异性：70m 的 A 降到 0.13，410m 降到 0.10，1.4b 降到 0.08，‖ū‖² 达到 0.87 – 0.91。到 step 1000 恢复到 0.69 – 0.72，此时 γ 仍为 1（V1 = V3）。这一阶段与 γ、β 无关。
+- **Pythia-70m / 160m（最终各向异性）。** V1 从 step 1000 – 2000 起持续下降（70m：0.69 → 0.27，step 50000）。V3 被 γ 托在 0.49 – 0.64：V3 前 10 维的 \|γ\| 百分位在 70m 的 step 2000 – 13000、160m 的 step 2000 – 80000 期间为 0.01 – 0.14（偶尔 0.37），即 γ 在压低这些维度。70m 从 step 32000 起这一百分位变为 0.98，γ 转为放大，但此时 V3 仍高于 V1（0.52 vs 0.28）。随后两者一起坍缩：70m 在 step 80000 – 143000 降到 V1 0.031 / V3 0.011，160m 在 step 110000 – 143000 降到 0.038 / 0.018。最终 checkpoint 的分解：
+  - 70m 的 V1 已有 ‖ū‖² = 0.963，乘 γ 后为 0.968，再加 β 后为 0.987。去掉 β 后 isotropy 只从 0.011 变到 0.026。
+  - 160m 为 0.957 → 0.958 → 0.980。
+  - 也就是说，最终的各向异性几乎全部已经在残差流中，γ 与 β 只是略有加强。
+  - ‖β‖/‖γ‖ 在坍缩的同时从 0.09 / 0.06 跳到 0.61 / 0.45，两者同时发生。
+  - 坍缩后均值不再集中在少数维度（前 10 维只占 ‖ū‖² 的 3 – 9%），RankMe 仍有 0.88：这是一个分布在很多维度上的公共方向，不是低秩。
+  - 70m 和 160m 的评估 loss 在坍缩期间都上升了（70m 4.338 → 4.502，160m 3.756 → 3.883）。
+- **Pythia-410m / 1.4b（最终各向同性）。** 前段与小模型相同。从 step 3000 – 5000 起，V1 下降（1.4b 最低 0.386，step 50000），V3 被 γ 托在 0.60 – 0.66，V3 前 10 维的 \|γ\| 百分位为 0.00 – 0.01。step 80000 以后 V1 回升（1.4b 0.537，410m 0.522），差距缩小到 +0.03 – +0.05。‖β‖/‖γ‖ 全程 ≤ 0.039，最后阶段在下降。γ 的 max/median 也只有 1.3。
+- **OLMo-2-1B。** V1 0.54 – 0.66，V3 0.59 – 0.69，stage1 中 γ 把 isotropy 提高 0.03 – 0.13；main（stage2 之后）的 V1 / V3 为 0.591 / 0.593，几乎相同。没有小 Pythia 那样的坍缩。
+
+![r4 figB2](figs/r4_figB2_top10.png)
+
+- **承载均值的维度何时稳定。** 前 10 维集合在相邻 checkpoint 之间的重合数，在 Pythia 中 step 3000 之前多为 0 – 3（还没有固定的均值维度），step 5000 – 8000 之后多为 6 – 10。70m/160m 在后期坍缩时又重新洗牌（70m step 80000 时为 4，160m step 110000 时为 2）。OLMo-2 在 stage1 后段的重合数下降到 1 – 4，main 与 stage1 末尾的重合为 0：stage2 训练改变了承载均值的维度。
+- **余弦占比与功能占比。** 前 10 维的 ‖ū‖² 占比与可加功能占比在 Pythia 中段大致同步上升（例如 1.4b step 50000：0.73 vs 0.56）。在 70m/160m 坍缩后两者都降到 ≤ 0.09。B3 的"bark"维度（占比高、功能 ≈ 0、偏移近似常数）在 91 个 checkpoint 中都没有出现。最接近的是 70m step 80000 的第 169 维（占比 0.28、可加占比 +0.009，偏移 sd/\|均值\| = 0.21，不是常数），以及 410m 后期的第 180 维（占比 0.12 – 0.16、可加占比 +0.007，sd/\|均值\| ≈ 1）。Pythia 不共享 embedding，这说明 GPT-2 第 496 维那样几乎常数的 W_U 列在 Pythia 的输出头中没有出现。
+
+![r4 figB3](figs/r4_figB3_massive.png)
+
+- **Massive activation 与 γ。** 中间层的 max/median mean\|h\| 在 step 2000 之前 ≤ 6；step 3000 – 8000 之间迅速上升，最终为 21 – 103（1.4b 单调上升到 103）。
+  - 对应维度的 \|γ\| 百分位从 0.5 降到 ≤ 0.05，与比值上升同时或更早：70m 在 step 1000 – 2000（比值此时只有 3，step 3000 才升到 10），160m 在 3000 – 8000，1.4b 在 2000 – 5000。之后多数时间保持在 0.00 – 0.02。
+  - 本次 checkpoint 间隔（1000 – 3000 step）下看不出"先出现、后压制"的滞后。
+  - 例外是前部层（第 2 – 3 层）的 massive 维度：410m 在 step 32000 – 50000 和 110000 – 143000 时最极端的层是第 3 层，其维度的 \|γ\| 百分位约 0.5，没有被压低。
+  - 注意本指标是"各维 mean\|h\|（对 token 平均）的 max/median"，与 Gallego-Feliciano 等的"单个激活的 max/median"不同，数值不可直接比较（他们报告 Pythia-1.4B 约 2350）。
+
+![r4 figB4](figs/r4_figB4_pos0.png)
+
+- **位置 0 范数比（B6）。** Pythia 四个规模在 step 2000 之前都是 1.1 – 1.3，在 step 3000（410m）到 13000（70m）之间超过 5，最终为 10.6（70m）、19.5（160m）、47.5（410m）、25.9（1.4b）。OLMo-2 全程 ≤ 2.9，main 为 2.6。与 Olmo-3.1-32B（第 1 轮：≤ 1.7）一致。OLMo-2 的中间层 max/median mean\|h\| 仍有 12 – 46：它有离群维度，只是没有位置 0 的范数尖峰。
+
+### R4.5 抵消（B5）
+
+- 训练过的 checkpoint 中，Qwen 式抵消（存在 k 使 corr(δ_S, δ_R) < 0 且子集 Δloss > 全部维度 Δloss）只在 pythia-70m step 110000（k=16）出现。
+- 70m step 80000 所有 k 的 corr 为 −0.24 – −0.32，但子集 Δloss 都小于全部维度。
+- 70m step 143000 的前 16 / 32 维 Δloss（4.54 / 7.92）大于全部维度（3.16），但 corr 为正（+0.47 / +0.65）。这里的 corr 是在整个词表上不加权计算的，而 Δloss 由高频 token 主导，所以两者不必一致。这是本轮统计口径（整个词表）与第三轮（出现 ≥ 5 次的 token）不同带来的限制。
+- 410m 与 OLMo-2 训练后期的 corr 最低为 −0.11 – −0.18，1.4b 从 step 2000 起全程 ≥ +0.17。三者都没有子集 Δloss 超过全部维度的情况。
+
+### R4.6 与已有工作的对照
+
+- **Machina & Mercer 2024（*Anisotropy is Not Inherent to Transformers*，NAACL）。** 他们在 final LayerNorm **之后**测 Inter-/Intra-Sim，并用配分函数估计 embedding / unembedding 矩阵的各向同性。他们报告 Pythia 70M、160M 最终各向异性、≥ 410M 各向同性；70M 先变得更各向同性，约训练三分之一后出现"runaway"各向异性。各向同性模型的 LN 偏置 b 保持很小、增益 g 持续增大，70M 中两者都增大并伴随各向同性下降；他们明确只作相关性陈述。
+  - **一致：** 最终的大小划分相同（V3：70m 0.011、160m 0.018，410m 0.555、1.4b 0.591）。70m 也有"先上升、后坍缩"的轨迹，坍缩发生在 step 50000 – 80000（训练的 35% – 56%）。‖β‖/‖γ‖ 的规律也相同：大模型 ≤ 0.04，小模型在坍缩时跳到 0.45 – 0.61。
+  - **补充 / 部分矛盾：** 我们把 final norm 拆成 V1 → γ → β 后，70m/160m 最终的各向异性在 V1（norm 之前，只归一化）中已经达到 ‖ū‖² 0.96。去掉 β 只让 ‖ū‖² 从 0.987 降到 0.968。β 的增大与坍缩同时发生，但不是坍缩的主要来源，来源是残差流本身。
+  - **"大模型把 final LN 优化成各向同性"：** 在 410m/1.4b 的训练中段成立，形式是 γ 压低均值维度（step 8000 – 80000 时 V3 比 V1 高 0.06 – 0.27），而不是保持 β 小（β 一直很小，对两者都一样）。到最终 checkpoint，残差流本身已回到中等各向同性（V1 0.52 / 0.54），γ 的贡献只剩 +0.03 / +0.05。
+- **Gallego-Feliciano et al. 2025（*Hidden Dynamics of Massive Activations in Transformer Training*）。** 他们用 Pythia 全系列检查点，按层测"最大激活 / 中位激活"，报告 massive activation 在初始化时不存在、在前约 6 万 step 内出现；早/晚层先达到峰值再衰减，中间层呈对数式增长，到 143k 仍未饱和；没有追踪具体维度，也没有分析 final norm。
+  - **一致：** 初始化时不存在；在训练早期（我们看到在 step 3000 – 8000 迅速上升）出现；1.4b 的最大值持续上升到 143k。
+  - **补充：** 承载 massive activation 的维度在 final norm 中的 \|γ\| 几乎立即被压到最低几个百分位（在同一批 checkpoint 中），而且这些维度与最后一层的均值维度基本不重合（第三轮结论摘要第 5 条）。他们的指标与我们的数值尺度不同，量级不可比。
+- **Parupudi 2026（arXiv 2606.29571，*Anisotropy Decides Cosine vs. Rank Metrics for Text Embeddings*）。** 19 个编码器（含 GPT-2、Qwen2.5、Pythia-410M、Mistral-7B），STS-B / SICK-R / STS16。他们的诊断量"单一最大方差坐标的方差占比"可以预测 rank / L1 类指标相对余弦的增益（ρ = 0.86）。去掉前 10 个主方向能在拥挤编码器上恢复余弦，但在分布均匀的编码器上使余弦平均下降 0.014。
+  - **一致 / 补充：** 我们的 A2' 发现 ΔSTS(V1 − V3) 主要随 γ 对 top-1 方差占比的改变而变化（ρ = 0.71 – 0.90），与他们"方差集中度决定余弦好坏"的结论一致。我们补充的是：同一个模型在输出完全不变的 γ 折算下，方差集中度和 STS 都会大幅改变（GPT-2 small STS-B mean 26.3 vs 42.6）。所以"编码器的几何"依赖于取哪一个等价表示。
+  - **不一致（A4）：** 在我们 8 个 V3 isotropy ≥ 0.59 的 LLM 上，abtt-10 从不降低 STS（32/32 ≥ 0，中位数 +2.6）。可能的原因是两边的"各向同性"不是同一组模型：他们的"分布均匀"组主要是经过对比训练的句向量模型，而我们的 LLM 即使 isotropy 高，方差也仍较集中（第三轮 V3 top-1 方差 0.02 – 0.34）。本次没有计算他们的诊断量，无法直接对齐分组。
+
 ## 4. 局限
 
+- 第 4 轮 A：STS 只用了两个英文数据集和两种池化，未做 STS12 – 16 等其他集合；拟合集是 WikiText 句子，与 STS 的领域不同，center / zscore / abtt 的统计量因此可能不是最优的；A2 只有 12 个点。
+- 第 4 轮 B：Pythia 每个规模只有一个训练 seed，checkpoint 间隔在 step 1000 以后为 1000 – 30000 step，"先后顺序"的判断受这一分辨率限制；OLMo-2 stage1 在 step 300 与 10000 之间没有 branch；massive activation 用的是各维 mean\|h\| 的 max/median，与文献中的单激活比值不同；偏移统计用整个词表，未按词频加权。
 - 模型集合不是设计出来的对照：只有两对 base/post-trained；参数量集中在 0.1–1.6B（GPT-2）、7–8B 和 24–33B；每个现代家族最多 3 个点。
 - 数据是 wikitext-103 test（≥100 词的段落只有 1085 段，1000 段样本几乎是全集），与原论文不同；截断长度 256。
 - 所有模型都用 bf16 前向，原论文可能用 fp32。
@@ -340,9 +459,11 @@ Slurm array 9769（12 个任务，`%2`，每任务 1 张 B300；gpt2 与 Qwen3-8
 
 1. 定位 Qwen2.5 / Qwen3 中去掉位置 0 后仍存在的大范数 token，并给出"去掉所有大范数 token"的 B/C。
 2. 补 Qwen3 系列的其他规模（0.6B–14B 的 Base），看 γ 尖峰与最后一层各向异性是否在同一家族内随规模变化。
-3. 查 Olmo-3.1 为何没有位置 0 尖峰（架构上 Olmo 系列的 norm 位置与其他模型不同，可作为起点）。
+3. 查 Olmo-3.1 为何没有位置 0 尖峰。第 4 轮：OLMo-2-1B 在整个训练中也没有（≤ 2.9），而 Pythia 都有，与"post-sublayer norm"的解释相容；要区分 norm 位置、QK-norm 形式和训练数据，需要只改其中一项的对照模型。
+5. 第 4 轮 A：计算 Parupudi 2026 的"单一最大方差坐标占比"诊断量，把我们的模型按他们的标准分组后重做 A4；补 STS12 – 16；用与 STS 同领域的拟合集。
+6. 第 4 轮 B：用 Pythia 的全部 154 个 checkpoint（或 dedup 版本、多 seed 的 PolyPythias）细化 70m/160m 后期坍缩与 γ 翻转的先后顺序；按词频加权重算抵消相关。
 4. 是否纳入 GLM-4.5-Air-FP8（FP8 量化 MoE，因精度与协议不符而排除）。
 
 ## 文件
 
-`prepare_data.py`、`measure.py`、`diag_final_norm.py`、`analyze.py`、第 3 轮的 `round3_lib.py`、`extract_round3.py`、`analyze_round3.py`、`count_unigrams.py`、补充分析 `analyze_round3b.py`（→ `results/round3/followup.{md,json}`）、`slurm/run_round3.sbatch`、`slurm/unigrams.sbatch`、`results/round3/`、`cache/banks/`（每个模型 fp32 bank，已加入 `.gitignore`）、`tests/test_metrics.py`、`slurm/run_array.sbatch`（+`slurm/env.sh`；已完成的步骤会自动跳过）、`models.txt`、`models_local.md`、`results/*.json`、`results/diag/*.json`、`results/summary.{md,csv}`、`figs/*.png`、`logs/iso_97{25,43}_*.out`（仅本地，不在 git 仓库中）。冒烟测试（各 50 条）的结果在 `results/smoke/`。
+`prepare_data.py`、`measure.py`、`diag_final_norm.py`、`analyze.py`、第 3 轮的 `round3_lib.py`、`extract_round3.py`、`analyze_round3.py`、`count_unigrams.py`、补充分析 `analyze_round3b.py`（→ `results/round3/followup.{md,json}`）、第 4 轮的 `prepare_fit_sentences.py`（→ `data/fit_sentences.jsonl`）、`sts_round4.py`、`download_round4.py`、`dyn_round4.py`、`analyze_round4.py`、`slurm/run_sts.sbatch`、`slurm/run_dyn.sbatch`、`configs/round4_ckpts.tsv`、`configs/round4_groups.txt`、`results/round4/`（`sts/`、`dyn/<model>/<revision>.json`、`sts_summary.md`、`dyn_summary.md`、`*_analysis.json`）、`cache/round4_banks/`（每个 checkpoint 的 bank，仅本地）、`slurm/run_round3.sbatch`、`slurm/unigrams.sbatch`、`results/round3/`、`cache/banks/`（每个模型 fp32 bank，已加入 `.gitignore`）、`tests/test_metrics.py`、`slurm/run_array.sbatch`（+`slurm/env.sh`；已完成的步骤会自动跳过）、`models.txt`、`models_local.md`、`results/*.json`、`results/diag/*.json`、`results/summary.{md,csv}`、`figs/*.png`、`logs/iso_97{25,43}_*.out`（仅本地，不在 git 仓库中）。冒烟测试（各 50 条）的结果在 `results/smoke/`。
