@@ -550,3 +550,20 @@ Slurm：
 ## 文件
 
 `prepare_data.py`、`measure.py`、`diag_final_norm.py`、`analyze.py`、第 3 轮的 `round3_lib.py`、`extract_round3.py`、`analyze_round3.py`、`count_unigrams.py`、补充分析 `analyze_round3b.py`（→ `results/round3/followup.{md,json}`）、第 4 轮的 `prepare_fit_sentences.py`（→ `data/fit_sentences.jsonl`）、`sts_round4.py`、`download_round4.py`、`dyn_round4.py`、`analyze_round4.py`、`slurm/run_sts.sbatch`、`slurm/run_dyn.sbatch`、`configs/round4_ckpts.tsv`、`configs/round4_groups.txt`、`results/round4/`（`sts/`、`dyn/<model>/<revision>.json`、`sts_summary.md`、`dyn_summary.md`、`*_analysis.json`）、`cache/round4_banks/`（每个 checkpoint 的 bank，仅本地）、第 5 轮的 `configs/round5_prereg.md`（预登记）、`round5_gpu.py`、`round5_cpu.py`、`analyze_round5.py`、`slurm/run_sts5.sbatch`、`slurm/run_r5gpu.sbatch`、`slurm/r5cpu.sbatch`、`slurm/unigrams5.sbatch`、`configs/round5_*.tsv|txt`、`results/round5/`（`sts/`、`dyn/`、`logit/`、`spec/`、`summary.md`、`analysis.json`、`h_uni.json`）、`cache/round5_banks/`（仅本地）、`slurm/run_round3.sbatch`、`slurm/unigrams.sbatch`、`results/round3/`、`cache/banks/`（每个模型 fp32 bank，已加入 `.gitignore`）、`tests/test_metrics.py`、`slurm/run_array.sbatch`（+`slurm/env.sh`；已完成的步骤会自动跳过）、`models.txt`、`models_local.md`、`results/*.json`、`results/diag/*.json`、`results/summary.{md,csv}`、`figs/*.png`、`logs/iso_97{25,43}_*.out`（仅本地，不在 git 仓库中）。冒烟测试（各 50 条）的结果在 `results/smoke/`。
+
+## 第六轮（阶段一）
+
+计划：`configs/round6_prereg.md`（预登记）、`results/round6/STATUS.md`（进度）。代码 `round6_*.py`，结果 `results/round6/`，图 `figs/r6_*.png`。
+
+### S0：准备
+
+- `tests/test_metrics.py`：9 个测试全过。
+- 基线复核（srun job 71342，1 张 B300，37 s）：`extract_round3.py --model gpt2` 重跑到 `results/round6/baseline/`，
+  V1 / V3 isotropy = 0.15332 / 0.06787，与第三轮的差为 0（容差 1e-3）；折算检查最大相对误差 3.1e-6、argmax 一致率 1.0。
+- 评估集 `data/eval_loss_round6.jsonl`（`prepare_eval_round6.py`）：wikitext-103 validation + test 中 ≥ 30 词的段落 3351 段，
+  按 Pythia tokenizer 截到 512 后共 507012 个预测 token。**与预期不同**：如果去掉前几轮 `data/samples.jsonl` 中的 1000 段 test 段落，
+  只剩 30.9 万个 token，达不到 50 万的目标，所以保留了它们并在每行标 `in_samples`（`--drop_samples` 可去掉）。
+  前几轮只在这些段落上估计过均值，第六轮不在这个集合上拟合任何东西。
+- S6 下载在登录节点后台进行：Hugging Face 上的仓库名为 `EleutherAI/pythia-{70m,160m}-seed{1..9}`（另有 `neox-ckpt-*` 与
+  `*-data-seed*`、`*-weight-seed*`，不使用），`step143000` 分支只提供 `pytorch_model.bin`；按文件元数据估计共约 4.9 GB。
+- OD 定义已从论文 v4 与代码核对，记在 `related_round6.md`。
