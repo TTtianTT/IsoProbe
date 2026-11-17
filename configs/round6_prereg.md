@@ -113,3 +113,24 @@
 **修订（2026-11-17 15:50，仍在任何 S4 计算之前）**：4c 的偏置拟合在 wikitext 上进行，而 Pythia 是在 Pile 上训练的，
 所以拟合的偏置还会吸收领域差异，可能让 loss 低于基线。增加对照：在**未截断**的头上用同样的数据、步数和学习率拟合偏置
 （初值 0），报告 loss(截断 + 偏置) − loss(未截断 + 偏置)。P6-9 的判定仍按原定义（相对未拟合的基线），对照只报告。
+
+---
+
+# 阶段二（2026-11-17 18:00 起）
+
+本部分在各任务开跑之前逐条追加并 commit。阶段二的结果放 `results/round6/p2/`。
+
+## T1：坍缩在规范度量下是否仍然存在（追加于 18:05，任何 T1 计算之前）
+
+- 对象：`configs/round6_p2_traj.tsv` 的 317 个 bank（第四、五轮的 284 个 Pythia checkpoint、OLMo-2 的 15 个、阶段一的 18 个 PolyPythias 终点）。
+- 每个 checkpoint 在 V1、V3、h*（均匀版）、h*_π（词频版）上计算：A（bank 版 isotropy）、中心化后的 top-1 方差占比、RankMe/d、
+  ‖ū‖²（L2 归一化 token 的均值的范数平方），另记 B_raw、B_c。h* 的构造与阶段一 `round6_gauge.py` 完全相同（增广形式，折算头为基点，fp64）。
+  W_U 取头的全部行（含 padding），π 用该 tokenizer 的 wikitext-103 train unigram 计数（Pythia 与 PolyPythias 词表相同，已核对；OLMo-2 由
+  `count_unigrams.py` 新算，文本前缀与第三轮相同）。
+- 本阶段起注意：h* 与 Park, Choe & Veitch（2024）的因果内积在隐藏状态一侧的变换 Cov(γ)^{1/2}h 只差常数因子（见 `related_round6.md`）。
+
+| 编号 | 预测 | 判定 |
+|---|---|---|
+| P7-1 | 坍缩在输出几何中表现为方差集中 | 主判定用均匀版 h*：70m 从 step 50000、160m 从 step 80000 到 step 143000，h* 中心化 top-1 方差占比上升 ≥ 0.2；410m、1.4b 从 step 80000 到 143000 的变化绝对值 < 0.05。四个条件全部满足才判成立。词频版 h*_π 同样计算，只报告 |
+| 无方向 | A* 与 A*_π 沿训练的轨迹是否像 V1 一样下降 | 只报告（四个 Pythia 规模与 OLMo-2） |
+| 无方向 | 10 个 seed 终点（原 seed + 9 个 PolyPythias）上 A(V3)、A(V1)、A*、A*_π 的变异系数（sd / mean，按规模分别算） | 只报告 |
