@@ -21,7 +21,7 @@ from extract_round3 import norm_params
 from measure import final_norm_module, resolve_model
 from round3_lib import variants
 from round6_lib import sample_transform
-from sts_round4 import cosines, load_sts, spearman100
+from sts_round4 import TEMPLATE, cosines, load_sts, spearman100
 
 NULL_TOL = 1e-12
 
@@ -77,6 +77,10 @@ def sims(E, fit_new, fit_old, i1, i2):
     mu, Wh, info = zca(fit_new)
     Z = torch.nn.functional.normalize((E - mu) @ Wh, dim=-1)
     out["whiten"] = (Z[i1] * Z[i2]).sum(-1)
+    mu, Wh, info_rt = zca_svd(fit_new, rank_tol=True)  # T3 numerical-check route (c), recorded alongside
+    Z = torch.nn.functional.normalize((E - mu) @ Wh, dim=-1)
+    out["whiten_rt"] = (Z[i1] * Z[i2]).sum(-1)
+    info = dict(info, ranktol=info_rt)
     return out, info
 
 
@@ -92,6 +96,8 @@ def main():
     ap.add_argument("--max_pairs", type=int, default=0)
     ap.add_argument("--max_fit", type=int, default=0, help="smoke test only")
     ap.add_argument("--out", default="results/round6/p2/whiten/")
+    ap.add_argument("--configs", default="stsb:mean",
+                    help="dataset:pool list; anything but the default writes to <out>/<dataset>_<pool>/ (fallback 3: sickr:mean,stsb:eol)")
     ap.add_argument("--check", action="store_true", help="numerical check only (eigh vs SVD whitening); use --out .../whiten_check/")
     args = ap.parse_args()
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -100,9 +106,11 @@ def main():
     torch.set_float32_matmul_precision("highest")
     path = resolve_model(args.model)
     slug = os.path.basename(path.rstrip("/"))
-    fn = os.path.join(args.out, f"{slug}.json")
-    if os.path.exists(fn):
-        print(f"{fn} exists, skipping", flush=True)
+    configs = [tuple(c.split(":")) for c in args.configs.split(",")]
+    outs = {c: (args.out if args.configs == "stsb:mean" else os.path.join(args.out, f"{c[0]}_{c[1]}")) for c in configs}
+    configs = [c for c in configs if not os.path.exists(os.path.join(outs[c], f"{slug}.json"))]
+    if not configs:
+        print(f"{slug}: all outputs exist, skipping", flush=True)
         return
     dev = "cuda:0"
     t0 = time.time()
@@ -116,24 +124,35 @@ def main():
     fit_old = [json.loads(l)["text"] for l in open(args.fit_old)]
     if args.max_fit:
         fit_new = fit_new[:args.max_fit]
-    sts = load_sts()["stsb"]
-    if args.max_pairs:
-        sts = sts.iloc[:args.max_pairs]
-    sents = list(dict.fromkeys(fit_new + fit_old + list(sts["sentence1"]) + list(sts["sentence2"])))
-    sid = {s: i for i, s in enumerate(sents)}
+    all_sts = load_sts()
     d = gamma.shape[0]
-    V1 = torch.zeros(len(sents), d, dtype=torch.float64)
-    for i, s in enumerate(sents):
-        ids = tok(s, add_special_tokens=True, return_tensors="pt")["input_ids"].to(dev)
-        model(input_ids=ids, attention_mask=torch.ones_like(ids))
-        v = variants(cap["x"][0], gamma, beta, ntype, eps)["V1"]
-        T = ids.shape[1]
-        V1[i] = v[1:T if T > 1 else 1].double().mean(0).cpu()
-        if (i + 1) % 5000 == 0:
-            print(f"[{slug}] {i + 1}/{len(sents)} {time.time() - t0:.0f}s", flush=True)
+    pooled = {}
+    for dataset, pool in configs:
+        sts = all_sts[dataset]
+        if args.max_pairs:
+            sts = sts.iloc[:args.max_pairs]
+        sents = list(dict.fromkeys(fit_new + fit_old + list(sts["sentence1"]) + list(sts["sentence2"])))
+        sid = {s: i for i, s in enumerate(sents)}
+        V1 = torch.zeros(len(sents), d, dtype=torch.float64)
+        for i, s in enumerate(sents):
+            text = TEMPLATE.format(s) if pool == "eol" else s
+            ids = tok(text, add_special_tokens=True, return_tensors="pt")["input_ids"].to(dev)
+            model(input_ids=ids, attention_mask=torch.ones_like(ids))
+            v = variants(cap["x"][0], gamma, beta, ntype, eps)["V1"]
+            T = ids.shape[1]
+            sel = slice(T - 1, T) if pool == "eol" else slice(1, T if T > 1 else 1)
+            V1[i] = v[sel].double().mean(0).cpu()
+            if (i + 1) % 5000 == 0:
+                print(f"[{slug} {dataset}/{pool}] {i + 1}/{len(sents)} {time.time() - t0:.0f}s", flush=True)
+        pooled[(dataset, pool)] = (V1, sid, sts)
     del model
     torch.cuda.empty_cache()
-    V1 = V1.to(dev)
+    for (dataset, pool), (V1, sid, sts) in pooled.items():
+        analyse(args, slug, d, gamma, beta, V1.to(dev), sid, sts, fit_new, fit_old, dev, t0,
+                os.path.join(outs[(dataset, pool)], f"{slug}.json"), dataset, pool)
+
+
+def analyse(args, slug, d, gamma, beta, V1, sid, sts, fit_new, fit_old, dev, t0, fn, dataset, pool):
     g64, b64 = gamma.double(), (beta.double() if beta is not None else torch.zeros_like(gamma, dtype=torch.float64))
     G = torch.load(os.path.join(args.gauge_cache, f"{slug}.pt"), weights_only=False)
     reps = {"V1": V1, "V3": V1 * g64 + b64,
@@ -146,12 +165,12 @@ def main():
     i1 = torch.as_tensor([sid[s] for s in sts["sentence1"]], device=dev)
     i2 = torch.as_tensor([sid[s] for s in sts["sentence2"]], device=dev)
     gold = torch.as_tensor(sts["score"].to_numpy().copy(), dtype=torch.float64, device=dev)
-    res = {"model": slug, "d": d, "n_fit_new": len(fit_new), "n_fit_old": len(fit_old), "n_pairs": len(sts),
+    res = {"model": slug, "dataset": dataset, "pool": pool, "d": d, "n_fit_new": len(fit_new), "n_fit_old": len(fit_old), "n_pairs": len(sts),
            "null_tol": NULL_TOL, "scores": {}, "zca": {}}
     if args.check:
         check(reps, i_new, i1, i2, gold, res)
         res["elapsed_s"] = time.time() - t0
-        os.makedirs(args.out, exist_ok=True)
+        os.makedirs(os.path.dirname(fn), exist_ok=True)
         json.dump(res, open(fn, "w"), indent=1)
         print(f"[{slug}] check: " + "; ".join(
             f"{k} range {v:.2e} max|cos-cos_V1| {max(res['max_abs_cos_diff_vs_V1'][k].values()):.2e} "
@@ -164,7 +183,7 @@ def main():
         for var, cv in c.items():
             cos[(r, var)] = cv
             res["scores"][f"{r}/{var}"] = spearman100(cv, gold)
-    for var in ("raw", "zscore", "zscore_oldfit", "whiten", "abtt10"):
+    for var in ("raw", "zscore", "zscore_oldfit", "whiten", "whiten_rt", "abtt10"):
         vals = [res["scores"][f"{r}/{var}"] for r in reps]
         res.setdefault("range_all", {})[var] = max(vals) - min(vals)
         lin = [res["scores"][f"lin{s}/{var}"] for s in range(3)]
@@ -178,9 +197,9 @@ def main():
         res["delta"][f"V1/{a}-{b}"] = {"delta": res["scores"][f"V1/{a}"] - res["scores"][f"V1/{b}"],
                                        "ci_lo": float(np.percentile(dl, 2.5)), "ci_hi": float(np.percentile(dl, 97.5))}
     res["elapsed_s"] = time.time() - t0
-    os.makedirs(args.out, exist_ok=True)
+    os.makedirs(os.path.dirname(fn), exist_ok=True)
     json.dump(res, open(fn, "w"), indent=1)
-    print(f"[{slug}] whiten range {res['range_all']['whiten']:.2e}; zscore lin range {res['range_lin']['zscore']:.2f}; "
+    print(f"[{slug} {dataset}/{pool}] whiten range {res['range_all']['whiten']:.2e} (rank tol {res['range_all']['whiten_rt']:.2e}); whiten range {res['range_all']['whiten']:.2e}; zscore lin range {res['range_lin']['zscore']:.2f}; "
           f"V1 whiten {res['scores']['V1/whiten']:.1f} zscore {res['scores']['V1/zscore']:.1f} "
           f"raw {res['scores']['V1/raw']:.1f}; zca {res['zca']['V1']} ({res['elapsed_s']:.0f}s)", flush=True)
 
