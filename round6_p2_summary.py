@@ -174,5 +174,182 @@ def t2():
     print("wrote figs/r6p2_fig2_saturation_split.png")
 
 
+# ---------------------------------------------------------------- T3
+
+def t3():
+    from round6_lib import MODELS12
+    R = {m: json.load(open(f"results/round6/p2/whiten/{m}.json")) for m in MODELS12
+         if os.path.exists(f"results/round6/p2/whiten/{m}.json")}
+    reps = ["V1", "V3", "D_Amax", "D_Amin", "lin0", "lin1", "lin2"]
+    L = [f"# Round 6 phase 2 T3: whitening invariance and STS-B ({len(R)}/12 models)\n",
+         "| model | whiten range (7 reps) | zscore range (3 G_lin) | zscore range (V1,V3,D) | raw | zscore | zscore (old fit) | whiten | abtt-10 | "
+         "whiten − zscore [95% CI] | dropped eig / cond kept (V1) |", "|---|" + "---|" * 10]
+    p73 = max(r["range_all"]["whiten"] for r in R.values())
+    n74 = sum(r["range_lin"]["zscore"] > 0.5 for r in R.values())
+    out = {"P7-3_max_range": p73, "P7-3_pass": p73 < 1e-6, "P7-4_n_models": n74, "P7-4_pass": n74 >= 10, "rows": {}}
+    for m, r in R.items():
+        sc = r["scores"]
+        zd = max(sc[f"{x}/zscore"] for x in ("V1", "V3", "D_Amax", "D_Amin")) - min(sc[f"{x}/zscore"] for x in ("V1", "V3", "D_Amax", "D_Amin"))
+        zo = max(sc[f"{x}/zscore_oldfit"] for x in ("V1", "V3", "D_Amax", "D_Amin")) - min(sc[f"{x}/zscore_oldfit"] for x in ("V1", "V3", "D_Amax", "D_Amin"))
+        dw = r["delta"]["V1/whiten-zscore"]
+        out["rows"][m] = {"zscore_range_diag": zd, "zscore_old_range_diag": zo, "lin_zscore": [sc[f"lin{k}/zscore"] for k in range(3)],
+                          "lin_raw": [sc[f"lin{k}/raw"] for k in range(3)], "zca_V1": r["zca"]["V1"],
+                          "cond_kept_max": max(z["cond_kept"] for z in r["zca"].values()),
+                          "dropped": {k: z["n_dropped"] for k, z in r["zca"].items()}}
+        L.append(f"| {m} | {r['range_all']['whiten']:.2e} | {r['range_lin']['zscore']:.2f} | {zd:.2e} | {sc['V1/raw']:.1f} | "
+                 f"{sc['V1/zscore']:.1f} | {sc['V1/zscore_oldfit']:.1f} | {sc['V1/whiten']:.1f} | {sc['V1/abtt10']:.1f} | "
+                 f"{dw['delta']:+.1f} [{dw['ci_lo']:+.1f}, {dw['ci_hi']:+.1f}] | {r['zca']['V1']['n_dropped']} / {r['zca']['V1']['cond_kept']:.2e} |")
+    L.append(f"\n- **P7-3**: max whitened-STS range over 7 representations = {p73:.3g} -> {'PASS' if p73 < 1e-6 else 'FAIL'} (< 1e-6)")
+    L.append(f"- **P7-4**: models with zscore range over 3 G_lin samples > 0.5: {n74}/{len(R)} -> {'PASS' if n74 >= 10 else 'FAIL'} (≥ 10)")
+    L.append("- zscore range over V1/V3/D_Amax/D_Amin (new fit / old fit): max " +
+             f"{max(v['zscore_range_diag'] for v in out['rows'].values()):.2e} / {max(v['zscore_old_range_diag'] for v in out['rows'].values()):.2e}")
+    L.append("- dropped eigenvalues per representation: " + "; ".join(f"{m} {v['dropped']['V1']}" for m, v in out["rows"].items()))
+    L.append("- max condition number of the kept spectrum over the 7 representations: " +
+             "; ".join(f"{m} {v['cond_kept_max']:.1e}" for m, v in out["rows"].items()))
+    json.dump(out, open("results/round6/p2/whiten/summary.json", "w"), indent=1)
+    open("results/round6/p2/whiten/summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+    plt = plt_setup()
+    from round6_summary import SHORT
+    fig, ax = plt.subplots(figsize=(7.4, 4.8))
+    ms = list(R)
+    for i, m in enumerate(ms):
+        y = len(ms) - 1 - i
+        sc = R[m]["scores"]
+        for var, col, mk, lab in (("raw", GRAY_, "o", "raw"), ("zscore", C1, "s", "zscore"), ("whiten", C3, "D", "ZCA whitening"),
+                                  ("abtt10", C2, "^", "abtt-10")):
+            xs = [sc[f"{r}/{var}"] for r in reps]
+            ax.plot([min(xs), max(xs)], [y, y], color=col, lw=2, alpha=0.6)
+            ax.scatter(xs, [y] * len(xs), color=col, marker=mk, s=26, edgecolor="white", lw=0.8, zorder=3,
+                       label=lab if i == 0 else None)
+    ax.set_yticks(range(len(ms)))
+    ax.set_yticklabels([SHORT.get(m, m) for m in ms][::-1])
+    ax.set_xlabel("STS-B test Spearman × 100 (mean pooling) across V1, V3, 2 diagonal and 3 linear gauges")
+    ax.set_title("Only whitening gives one score for every output-preserving linear gauge", fontsize=10, loc="left")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=4, frameon=False, fontsize=8)
+    fig.tight_layout()
+    fig.savefig("figs/r6p2_fig3_whiten.png", dpi=160)
+    print("wrote figs/r6p2_fig3_whiten.png")
+
+
+# ---------------------------------------------------------------- T4
+
+def t50(steps, vals, start, kind="level"):
+    s, v = np.asarray(steps), np.asarray(vals, dtype=float)
+    k = s >= start
+    s, v = s[k], v[k]
+    o = np.argsort(s)
+    s, v = s[o], v[o]
+    if kind == "loss":
+        i0 = int(np.argmin(v))
+        tot = v[-1] - v[i0]
+        if tot <= 0:
+            return None
+        hit = np.flatnonzero(v[i0:] >= v[i0] + 0.5 * tot)
+        return int(s[i0 + hit[0]])
+    tot = v[-1] - v[0]
+    if tot == 0:
+        return None
+    hit = np.flatnonzero((v - v[0]) / tot >= 0.5)
+    return int(s[hit[0]])
+
+
+def seed_series(name):
+    """Per checkpoint: V1 ||ubar||^2, W_U s1^2/sum, eval loss (round6_eval) for a seed (original seed: rounds 4/5)."""
+    rows = {}
+    if "-seed" in name:
+        for f in glob.glob(f"results/round6/poly/{name}/step*.json"):
+            r = json.load(open(f))
+            rows[int(r["revision"][4:])] = {"ub": r["step1"]["V1"]["all"]["ubar_sq"], "s1": r["spec"]["W_U"]["s1sq_over_sum"]}
+    else:
+        for rnd in ("round4", "round5"):
+            for f in glob.glob(f"results/{rnd}/dyn/{name}/step*.json"):
+                st = int(os.path.basename(f)[4:-5])
+                sp = f"results/round5/spec/{name}/step{st}.json"
+                if os.path.exists(sp):
+                    rows[st] = {"ub": json.load(open(f))["step1"]["V1"]["all"]["ubar_sq"],
+                                "s1": json.load(open(sp))["W_U"]["s1sq_over_sum"]}
+    for st in list(rows):
+        e = f"results/round6/p2/poly_eval/{name}/step{st}.json"
+        rows[st]["loss"] = json.load(open(e))["loss"] if os.path.exists(e) else None
+    return rows
+
+
+def t4():
+    L = ["# Round 6 phase 2 T4: ordering of residual-stream collapse and head spike across seeds\n"]
+    out = {"seeds": {}}
+    grid70 = list(range(50000, 143001, 1000))
+    L.append("| model | n ckpts | V1 ‖ū‖² start → end | σ₁²/Σσ² start → end | t50 ‖ū‖² | t50 σ₁² | t50 loss | ‖ū‖² first? | t50 loss − t50 ‖ū‖² |")
+    L.append("|---|---|---|---|---|---|---|---|---|")
+    for size, start, seeds in (("pythia-70m", 50000, [None] + list(range(1, 10))), ("pythia-160m", 80000, [None] + list(range(1, 10)))):
+        for k in seeds:
+            name = size if k is None else f"{size}-seed{k}"
+            rows = seed_series(name)
+            st = sorted(s for s in rows if s >= start)
+            if not st:
+                continue
+            ub = [rows[s]["ub"] for s in st]
+            s1 = [rows[s]["s1"] for s in st]
+            lo = [(s, rows[s]["loss"]) for s in st if rows[s]["loss"] is not None]
+            full = (set(grid70) <= set(st)) if size == "pythia-70m" else None
+            tu, ts = t50(st, ub, start), t50(st, s1, start)
+            tl = t50([a for a, _ in lo], [b for _, b in lo], start, "loss") if len(lo) >= 3 else None
+            out["seeds"][name] = {"n": len(st), "complete_grid": full, "t50_ubar": tu, "t50_s1": ts, "t50_loss": tl,
+                                  "ubar_first": (tu is not None and ts is not None and tu < ts),
+                                  "ub_start_end": [ub[0], ub[-1]], "s1_start_end": [s1[0], s1[-1]], "steps": st,
+                                  "ub": ub, "s1": s1, "loss": [b for _, b in lo], "loss_steps": [a for a, _ in lo]}
+            L.append(f"| {name} | {len(st)} | {ub[0]:.3f} → {ub[-1]:.3f} | {s1[0]:.3f} → {s1[-1]:.3f} | {tu} | {ts} | {tl} | "
+                     f"{'yes' if out['seeds'][name]['ubar_first'] else 'no'} | {(tl - tu) if (tl and tu) else '–'} |")
+    col = [f"pythia-70m-seed{k}" for k in range(2, 10)]
+    use = [n for n in col if n in out["seeds"] and out["seeds"][n]["complete_grid"]]
+    n_yes = sum(out["seeds"][n]["ubar_first"] for n in use)
+    need = 7 if len(use) == 8 else len(use) - 1
+    out["P7-5"] = {"seeds_used": use, "n_yes": n_yes, "n": len(use), "need": need, "pass": len(use) > 0 and n_yes >= need}
+    L.append(f"\n- **P7-5**: t50(V1 ‖ū‖²) < t50(σ₁²/Σσ²) in {n_yes}/{len(use)} collapsed 70m seeds with a complete grid "
+             f"(need ≥ {need}) -> {'PASS' if out['P7-5']['pass'] else 'FAIL'}")
+    # 160m cross-correlation of first differences
+    xc = {}
+    for k in (1, 3, 6, 9):
+        n = f"pythia-160m-seed{k}"
+        if n not in out["seeds"]:
+            continue
+        a = np.diff(out["seeds"][n]["ub"])
+        b = np.diff(out["seeds"][n]["s1"])
+        if len(a) < 20:
+            continue
+        cc = {}
+        for lag in range(-5, 6):  # positive lag: ubar change at t correlates with s1 change at t + lag (ubar leads)
+            x, y = (a[:len(a) - lag], b[lag:]) if lag >= 0 else (a[-lag:], b[:len(b) + lag])
+            cc[lag] = float(np.corrcoef(x, y)[0, 1])
+        xc[n] = cc
+    if xc:
+        avg = {lag: float(np.mean([c[lag] for c in xc.values()])) for lag in range(-5, 6)}
+        out["xcorr_160m"] = {"per_seed": xc, "mean": avg, "argmax_lag": max(avg, key=avg.get)}
+        L.append("- 160m cross-correlation of first differences (positive lag = ‖ū‖² leads): mean " +
+                 ", ".join(f"{lag:+d}: {v:+.2f}" for lag, v in avg.items()) + f"; argmax lag {out['xcorr_160m']['argmax_lag']:+d}")
+    json.dump(out, open("results/round6/p2/poly_summary.json", "w"), indent=1)
+    open("results/round6/p2/poly_summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+    plt = plt_setup()
+    fig, ax = plt.subplots(figsize=(7.2, 4.2))
+    names = [n for n in out["seeds"] if n.startswith("pythia-70m")]
+    for i, n in enumerate(names):
+        v = out["seeds"][n]
+        y = len(names) - 1 - i
+        for key, col, mk, lab in (("t50_ubar", C1, "o", "t50 V1 ‖ū‖²"), ("t50_s1", C2, "s", "t50 W_U σ₁²/Σσ²"),
+                                  ("t50_loss", C3, "D", "t50 eval loss")):
+            if v[key] is not None:
+                ax.scatter(v[key], y, color=col, marker=mk, s=40, edgecolor="white", lw=1, zorder=3, label=lab if i == 0 else None)
+    ax.set_yticks(range(len(names)))
+    ax.set_yticklabels([n.replace("pythia-70m", "70m").replace("-seed", " seed ") if "seed" in n else "70m seed 0 (orig.)"
+                        for n in names][::-1])
+    ax.set_xlabel("training step")
+    ax.set_title("Pythia-70m: when each quantity reaches 50% of its late change", fontsize=10, loc="left")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3, frameon=False, fontsize=8)
+    fig.tight_layout()
+    fig.savefig("figs/r6p2_fig4_t50_by_seed.png", dpi=160)
+    print("wrote figs/r6p2_fig4_t50_by_seed.png")
+
+
 if __name__ == "__main__":
-    {"t1": t1, "t2": t2}[sys.argv[1]]()
+    {"t1": t1, "t2": t2, "t3": t3, "t4": t4}[sys.argv[1]]()
