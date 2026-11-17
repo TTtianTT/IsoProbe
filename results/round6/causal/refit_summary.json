@@ -1,0 +1,26 @@
+{
+ "pythia-70m": {
+  "D_raw": 0.16738897904219474,
+  "D_refit": 0.5605710143619271,
+  "ratio": 3.348912321286222,
+  "class": "body side",
+  "argmin_base": "step50000",
+  "argmin_refit": "step50000"
+ },
+ "pythia-160m": {
+  "D_raw": 0.11875899151713742,
+  "D_refit": 0.41310344529142684,
+  "ratio": 3.4785024696998565,
+  "class": "body side",
+  "argmin_base": "step80000",
+  "argmin_refit": "step80000"
+ },
+ "pythia-410m": {
+  "D_raw": 0.0,
+  "D_refit": 0.0,
+  "ratio": null,
+  "class": "no reading (D_raw <= 0)",
+  "argmin_base": "step143000",
+  "argmin_refit": "step143000"
+ }
+}

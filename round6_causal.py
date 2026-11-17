@@ -267,7 +267,7 @@ def refit(model_name, rev, args, fn):
     C = Ckpt(model_name, rev)
     X, Y, FL, chk = C.eval_cache(args.max_tokens)
     chunks = torch.load(TRAIN_CACHE, weights_only=False)["chunks"]
-    cdir = os.path.join("cache/round6/refit", model_name, rev)
+    cdir = os.path.join(args.refit_cache, model_name, rev)
     os.makedirs(cdir, exist_ok=True)
     g = C.gamma.clone().requires_grad_(True)
     bt = (C.beta if C.beta is not None else torch.zeros_like(C.gamma)).clone().requires_grad_(True)
@@ -343,6 +343,8 @@ def main():
     ap.add_argument("--bias_steps", type=int, default=200)
     ap.add_argument("--refit_steps", type=int, default=1000)
     ap.add_argument("--out", default="results/round6/causal/")
+    ap.add_argument("--refit_cache", default="cache/round6/refit/",
+                    help="where refit saves/resumes head + optimizer (use a separate dir for smoke tests)")
     args = ap.parse_args()
     if args.mode == "prepare":
         prepare_train()
