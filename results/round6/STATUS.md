@@ -45,11 +45,12 @@ PolyPythias 的中间 checkpoint（尤其 160m）。
 | T1 | 完成 | CPU 71457、71458 | P7-1 不成立（70m +0.115）；坍缩在 h* 中表现为公共均值方向（‖ū‖² 0.998） |
 | T2 | 完成 | GPU 71470；CPU 71471、71480、分析重跑 | 2a 弥散（补集 ≥ 0.983）；P7-2 不成立（70m +0.133）；H 主要是 UTF-8 字节片段 |
 | T3 | 完成 | GPU 71482；核查 71528 | 数值核查：SVD + 数值秩容差下 4/4 极差 < 1e-6，停止条件未触发；P7-3 按预注册不成立（极差 0.0196，只有 Qwen3-8B/-Base 的 V3，1e-12 阈值丢掉 1 个特征值）；P7-4 不成立（8/12） |
-| T4 | 完成 | GPU 71510（array 0-1）；登录节点 6 个下载进程（19:28 重启，已全部结束） | P7-5 成立（8/8）；1142 行全部下载并测量 |
-| T5 | 未开始（脚本就绪） | `slurm/round6_p2_refit.sbatch` | |
-| T6 | 未开始（脚本就绪） | `slurm/round6_p2_ft.sbatch` | |
+| T4 | P7-5 完成；loss 重算中 | GPU 71510（array 0-1）；fp32 评估 loss CPU 71542（array 0-11） | P7-5 成立（8/8）；bf16 评估 loss 作废（坍缩 checkpoint 上偏高约 1.1 nat），fp32 重算 |
+| T5 | 运行中 | GPU 71536（array 0-14%2）；smoke 71535（目录已删） | |
+| T6 | 排队（T5 结束后自动提交） | `slurm/round6_p2_ft.sbatch`；CPU smoke 71539（目录已删） | |
 
 问题记录（阶段二）：
 - 19:2x 发现最初的下载进程已全部退出（4 个停在下载中途），886/1142 行完成；用 `--shard k/6` 重启 6 个进程（已完成的行按 `.complete` 跳过）。
 - T4 第一次提交（71505）后改为每个 GPU 4 个进程（71507），因 B300 是 exclusive-process 模式失败（cudaErrorDevicesUnavailable），取消后回到每 GPU 1 个进程（71510）。
   取消前把 `round6_poly.py` 的 JSON 写入改为先写临时文件再改名；已有的 108 个 JSON 全部可解析。
+- 22:40 发现 T4 的评估 loss（bf16 模型 logit）在坍缩 checkpoint 上严重偏高，撤回 REPORT 中的 loss t50 结论，预注册追加修订后用 fp32 重算（CPU 71542）。
