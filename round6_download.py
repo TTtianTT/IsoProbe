@@ -2,7 +2,9 @@
 into /dataset1/zailong/models/ckpts/<repo name>/<revision>/. These repos ship pytorch_model.bin (no safetensors).
 Total estimated before download (HfApi file metadata): 9 x 166 MB (70m) + 9 x 375 MB (160m) ~= 4.9 GB.
 
-Usage: HF_HUB_OFFLINE=0 HF_HUB_DISABLE_XET=1 python round6_download.py
+Phase 2 (T4): --list configs/round6_poly_ckpts.tsv (1142 rows, coarse-to-fine order; ~247 GB new), 4 workers via --shard k/4.
+
+Usage: HF_HUB_OFFLINE=0 HF_HUB_DISABLE_XET=1 python round6_download.py [--list ...] [--shard k/n]
 """
 import argparse
 import os
@@ -17,8 +19,10 @@ from download_round4 import ckpt_dir
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--list", default="configs/round6_polypythia.tsv")
+    ap.add_argument("--shard", default="0/1", help="k/n: this worker takes rows with index %% n == k")
     args = ap.parse_args()
-    rows = [l.rstrip("\n").split("\t") for l in open(args.list) if l.strip()]
+    k, n = map(int, args.shard.split("/"))
+    rows = [l.rstrip("\n").split("\t") for l in open(args.list) if l.strip()][k::n]
     for repo, rev in rows:
         out = ckpt_dir(repo, rev)
         done = os.path.join(out, ".complete")
