@@ -241,6 +241,46 @@ def t3():
     print("wrote figs/r6p2_fig3_whiten.png")
 
 
+
+def fb3():
+    """Fallback 3: T3 quantities on SICK-R (mean pooling) and STS-B (PromptEOL). Descriptive, no verdicts."""
+    from round6_lib import MODELS12
+    base = "results/round6/p2/whiten_fb3"
+    L = ["# Round 6 phase 2 fallback 3: T3 on SICK-R (mean) and STS-B (PromptEOL), descriptive\n"]
+    out = {}
+    for cfg in ("sickr_mean", "stsb_eol"):
+        R = {m: json.load(open(f"{base}/{cfg}/{m}.json")) for m in MODELS12 if os.path.exists(f"{base}/{cfg}/{m}.json")}
+        if not R:
+            continue
+        L += [f"\n## {cfg} ({len(R)}/12 models)\n",
+              "| model | whiten range (7 reps, eigh 1e-12) | whiten range (svd rank-tol) | zscore range (3 G_lin) | raw | zscore | whiten | whiten − zscore [95% CI] |",
+              "|---|" + "---|" * 7]
+        for m, r in R.items():
+            sc, dw = r["scores"], r["delta"]["V1/whiten-zscore"]
+            L.append(f"| {m} | {r['range_all']['whiten']:.2e} | {r['range_all']['whiten_rt']:.2e} | {r['range_lin']['zscore']:.2f} | "
+                     f"{sc['V1/raw']:.1f} | {sc['V1/zscore']:.1f} | {sc['V1/whiten']:.1f} | {dw['delta']:+.1f} [{dw['ci_lo']:+.1f}, {dw['ci_hi']:+.1f}] |")
+        mx = max(r["range_all"]["whiten"] for r in R.values())
+        mxr = max(r["range_all"]["whiten_rt"] for r in R.values())
+        nz = sum(r["range_all"]["whiten"] > 0 for r in R.values())
+        nzr = sum(r["range_all"]["whiten_rt"] > 0 for r in R.values())
+        lz = [r["range_lin"]["zscore"] for r in R.values()]
+        n05 = sum(x > 0.5 for x in lz)
+        dws = [r["delta"]["V1/whiten-zscore"] for r in R.values()]
+        up = sum(d["ci_lo"] > 0 for d in dws); dn = sum(d["ci_hi"] < 0 for d in dws)
+        L.append(f"\n- whitened-score range over 7 representations: eigh path max {mx:.3g} (> 0 in {nz}/{len(R)}); svd rank-tol path max {mxr:.3g} (> 0 in {nzr}/{len(R)})")
+        L.append(f"- zscore range over 3 G_lin samples > 0.5 in {n05}/{len(R)} (range {min(lz):.2f} – {max(lz):.2f})")
+        L.append(f"- V1 whiten − zscore: CI above 0 in {up}/{len(R)}, below 0 in {dn}, includes 0 in {len(R) - up - dn}; "
+                 f"delta range {min(d['delta'] for d in dws):+.2f} – {max(d['delta'] for d in dws):+.2f}")
+        L.append("- dropped eigenvalues (eigh path) per representation: " +
+                 "; ".join(f"{m} {[z['n_dropped'] for z in r['zca'].values()]}" for m, r in R.items() if any(z['n_dropped'] for z in r['zca'].values())))
+        out[cfg] = {"n": len(R), "whiten_range_max": mx, "whiten_range_nonzero": nz, "whiten_rt_range_max": mxr, "whiten_rt_range_nonzero": nzr,
+                    "zscore_lin_gt05": n05, "whiten_minus_zscore_ci_above0": up, "ci_below0": dn,
+                    "rows": {m: {"range_all": r["range_all"], "range_lin": r["range_lin"], "delta": r["delta"]} for m, r in R.items()}}
+    json.dump(out, open(f"{base}/summary.json", "w"), indent=1)
+    open(f"{base}/summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+
+
 # ---------------------------------------------------------------- T4
 
 def t50(steps, vals, start, kind="level"):
@@ -513,4 +553,4 @@ def t6():
 
 
 if __name__ == "__main__":
-    {"t1": t1, "t2": t2, "t3": t3, "t3check": t3check, "t4": t4, "t5": t5, "t6": t6}[sys.argv[1]](*sys.argv[2:])
+    {"t1": t1, "t2": t2, "t3": t3, "t3check": t3check, "t4": t4, "t5": t5, "t6": t6, "fb3": fb3}[sys.argv[1]](*sys.argv[2:])
