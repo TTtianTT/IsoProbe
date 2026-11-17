@@ -32,6 +32,8 @@ TOK_PATH = ckpt_dir("EleutherAI/pythia-70m", "step143000")
 CHUNK, N_CHUNKS = 512, 18000
 REFIT_OFF, BIAS_OFF = 0, 16000
 DEV = "cuda:0"
+# body precision: bf16 (default, all phase-1 and phase-2 results) or fp32 (phase 2 precision check, ISO_BODY_DTYPE=fp32)
+BODY_DTYPE = {"bf16": torch.bfloat16, "fp32": torch.float32}[os.environ.get("ISO_BODY_DTYPE", "bf16")]
 
 
 def prepare_train(max_chars=60_000_000):
@@ -67,7 +69,7 @@ class Ckpt:
         from transformers import AutoModelForCausalLM, AutoTokenizer
         self.path = ckpt_dir(f"EleutherAI/{model_name}", rev)
         self.tok = AutoTokenizer.from_pretrained(self.path, local_files_only=True)
-        self.model = AutoModelForCausalLM.from_pretrained(self.path, dtype=torch.bfloat16, device_map=DEV,
+        self.model = AutoModelForCausalLM.from_pretrained(self.path, dtype=BODY_DTYPE, device_map=DEV,
                                                           local_files_only=True).eval()
         for p in self.model.parameters():
             p.requires_grad_(False)
@@ -103,7 +105,7 @@ class Ckpt:
                 chk = max(chk, ((L - ref).abs().max() / ref.abs().max()).item())
             else:
                 x = self.x_of(ids)
-            xs.append(x[0, :-1].to(torch.bfloat16))
+            xs.append(x[0, :-1].to(BODY_DTYPE))
             ys.append(ids[0, 1:])
             fl.append(torch.full((ids.shape[1] - 1,), bool(r["in_samples"]), device=DEV))
             ps.append(torch.arange(ids.shape[1] - 1, device=DEV))
