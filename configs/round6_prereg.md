@@ -64,3 +64,48 @@
 | 编号 | 预测 | 判定 |
 |---|---|---|
 | P6-5 | max/median \|γ\| ≥ 5 的四个模型（gpt2、gpt2-medium、Qwen3-8B-Base、Qwen3-8B）上 OD 集合依赖规范 | 4 个模型都满足 Jaccard(OD(V1), OD(V3)) < 0.5 才判为成立；报告满足的个数 |
+
+---
+
+## S4、S5 预登记（追加于 2026-11-17 15:45，任何 S4/S5 计算之前）
+
+共同设定：
+- checkpoint：pythia-70m step 50000、80000、110000、130000、143000；pythia-160m step 80000、110000、130000、143000；
+  pythia-410m step 80000、143000（本地原 seed）。
+- loss 一律在 `data/eval_loss_round6.jsonl`（3351 段，截到 512 token，50.7 万个预测 token）上算，按 token 平均。
+  另外单独报告去掉 `in_samples` 段落后的值（用于检查与前几轮估计数据的重叠）。若前向太慢则截到前 20 万个 token 并记录。
+- 所有干预都在 final norm 处做：V1 = normalize(x)（fp32，由 bf16 的 x 计算），logit = W_f V1 + b'，W_f = W_U·diag(γ)，b' = W_U β。
+  基线 loss 用同一路径计算，并与模型自身 logit 在前 5 条序列上核对。
+- 训练数据（S4 的偏置拟合、S5）：wikitext-103 train 非空行依次用 Pythia tokenizer 编码、拼接、切成 512 token 的块，
+  按 seed 0 打乱。S5 用前 16000 块，S4 的偏置拟合用之后的块。评估集不参与任何拟合。
+
+### S4
+
+- **4b**：ū = V1 bank（`cache/round{4,5}_banks/`，第三轮的 1000 条序列）的 L2 归一化 token 的均值，再单位化；
+  c = bank 上 ūᵀV1 的均值。三种干预（u 为单位方向，p_t = uᵀV1_t）：
+  1. V1 − c·u（只去掉沿 u 的均值，等价于固定 logit 偏置）；
+  2. V1 − (p_t − c)·u（沿 u 的分量固定为 c）；
+  3. V1 − p_t·u（完全投影掉）。
+  对照：5 个随机高斯单位方向（seed 0–4），各自的 c 同样在 bank 上估计。Δloss = loss(干预) − loss(基线)。
+- **4c**：W_f 的 SVD，σ₁ 截到 σ₂：W_t = W_f − (σ₁ − σ₂) u₁v₁ᵀ（用头的全部行，含 padding 行）。然后只拟合一个 logit 偏置 b：
+  初值为补偿均值的 b₀ = (σ₁ − σ₂) E_train[v₁ᵀV1] u₁，再用 Adam（lr 1e-2）在训练块上走 200 步（每步 8 × 512 token，seed 0）。
+  报告截断后、b₀ 后、200 步后的 Δloss。
+
+| 编号 | 预测 | 判定 |
+|---|---|---|
+| P6-8 | 坍缩后，干预 2 的代价远小于干预 1 | 70m、160m 的 step 143000 都满足 Δloss(2) < 0.2·Δloss(1)（ū 方向） |
+| P6-9 | 谱尖峰只承载常数先验 | 70m、160m 的 step 143000 都满足：截断加偏置拟合 200 步后 Δloss < 0.02 nats |
+
+其余 checkpoint、随机方向、干预 3 只报告。
+
+### S5（缩减版，"初步"）
+
+- 冻结 final norm 之前的全部参数；训练 final norm 的 γ、β 和 W_U（fp32 副本，从该 checkpoint 自己的值初始化）。
+  logit = (γ ⊙ normalize(x) + β) W_Uᵀ，x 由冻结的 bf16 主体前向得到。
+- AdamW，lr 1e-4（恒定，无 warmup），weight_decay 0，betas (0.9, 0.999)，1000 步，batch 16 × 512 token，seed 0。
+  每 250 步存一次头的权重与优化器状态（`cache/round6/refit/`，不进 git）并在评估集上算 loss，中断后从最近的存档续跑。
+- 顺序：70m 的 5 个 → 410m 的 2 个 → 160m 的 4 个。
+- 读法（不预设方向）：对每个规模，D_raw = loss_base(step 143000) − min_所选 checkpoint loss_base，
+  D_refit = loss_refit(step 143000) − min_所选 checkpoint loss_refit（refit 取 1000 步时的值）。
+  D_refit ≤ 0.25·D_raw → 读出侧；≥ 0.75·D_raw → 身体侧；其间 → 混合。D_raw ≤ 0 时不作判读。
+  单 seed、单学习率，报告中标为"初步"。
