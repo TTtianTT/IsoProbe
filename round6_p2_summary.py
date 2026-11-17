@@ -203,7 +203,8 @@ def t3():
     L.append(f"- **P7-4**: models with zscore range over 3 G_lin samples > 0.5: {n74}/{len(R)} -> {'PASS' if n74 >= 10 else 'FAIL'} (≥ 10)")
     L.append("- zscore range over V1/V3/D_Amax/D_Amin (new fit / old fit): max " +
              f"{max(v['zscore_range_diag'] for v in out['rows'].values()):.2e} / {max(v['zscore_old_range_diag'] for v in out['rows'].values()):.2e}")
-    L.append("- dropped eigenvalues per representation: " + "; ".join(f"{m} {v['dropped']['V1']}" for m, v in out["rows"].items()))
+    L.append("- dropped eigenvalues per representation (V1, V3, D_Amax, D_Amin, lin0-2): "
+             + "; ".join(f"{m} {list(v['dropped'].values())}" for m, v in out["rows"].items()))
     L.append("- max condition number of the kept spectrum over the 7 representations: " +
              "; ".join(f"{m} {v['cond_kept_max']:.1e}" for m, v in out["rows"].items()))
     json.dump(out, open("results/round6/p2/whiten/summary.json", "w"), indent=1)

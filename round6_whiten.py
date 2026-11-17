@@ -38,6 +38,38 @@ def zca(fit):
     return mu, Wh, info
 
 
+def zca_svd(fit, rank_tol=False):
+    """Same pseudo-inverse whitening from the SVD of the centred fit matrix (no squared condition number).
+    rank_tol=False keeps s^2 > NULL_TOL * s_max^2 (as the eigh route); True keeps s > s_max * max(n, d) * eps (numpy matrix_rank)."""
+    mu = fit.mean(0)
+    _, S, Vh = torch.linalg.svd(fit - mu, full_matrices=False)
+    if rank_tol:
+        keep = S > S.max() * max(fit.shape) * torch.finfo(S.dtype).eps
+    else:
+        keep = S.pow(2) > NULL_TOL * S.max().pow(2)
+    Wh = (Vh[keep].T * (fit.shape[0] ** 0.5 / S[keep])) @ Vh[keep]
+    return mu, Wh, {"n_dropped": int((~keep).sum()), "cond_kept": (S[keep].max() / S[keep].min()).pow(2).item(),
+                    "s2_min_dropped_ratio": (S[~keep].max() / S.max()).pow(2).item() if (~keep).any() else None,
+                    "s2_min_kept_ratio": (S[keep].min() / S.max()).pow(2).item()}
+
+
+def check(reps, i_new, i1, i2, gold, res):
+    """Numerical check of P7-3 (configs/round6_prereg.md, T3 amendment): eigh / SVD / SVD with rank tolerance."""
+    zc = {}
+    routes = (("eigh", zca), ("svd", zca_svd), ("svd_ranktol", lambda f: zca_svd(f, rank_tol=True)))
+    for route, fz in routes:
+        for r, E in reps.items():
+            mu, Wh, info = fz(E[i_new])
+            Z = torch.nn.functional.normalize((E - mu) @ Wh, dim=-1)
+            zc[(route, r)] = (Z[i1] * Z[i2]).sum(-1)
+            res["scores"][f"{r}/{route}"] = spearman100(zc[(route, r)], gold)
+            res["zca"][f"{r}/{route}"] = info
+        vals = [res["scores"][f"{r}/{route}"] for r in reps]
+        res.setdefault("range_all", {})[route] = max(vals) - min(vals)
+        res.setdefault("max_abs_cos_diff_vs_V1", {})[route] = {
+            r: (zc[(route, r)] - zc[(route, "V1")]).abs().max().item() for r in reps}
+
+
 def sims(E, fit_new, fit_old, i1, i2):
     """Cosines of every similarity variant for one representation E (rows = all sentences)."""
     out = {"raw": cosines(E, fit_new, "raw", i1, i2), "zscore": cosines(E, fit_new, "zscore", i1, i2),
@@ -60,6 +92,7 @@ def main():
     ap.add_argument("--max_pairs", type=int, default=0)
     ap.add_argument("--max_fit", type=int, default=0, help="smoke test only")
     ap.add_argument("--out", default="results/round6/p2/whiten/")
+    ap.add_argument("--check", action="store_true", help="numerical check only (eigh vs SVD whitening); use --out .../whiten_check/")
     args = ap.parse_args()
     from transformers import AutoModelForCausalLM, AutoTokenizer
     torch.backends.cuda.enable_cudnn_sdp(False)
@@ -115,6 +148,15 @@ def main():
     gold = torch.as_tensor(sts["score"].to_numpy().copy(), dtype=torch.float64, device=dev)
     res = {"model": slug, "d": d, "n_fit_new": len(fit_new), "n_fit_old": len(fit_old), "n_pairs": len(sts),
            "null_tol": NULL_TOL, "scores": {}, "zca": {}}
+    if args.check:
+        check(reps, i_new, i1, i2, gold, res)
+        res["elapsed_s"] = time.time() - t0
+        os.makedirs(args.out, exist_ok=True)
+        json.dump(res, open(fn, "w"), indent=1)
+        print(f"[{slug}] check: " + "; ".join(
+            f"{k} range {v:.2e} max|cos-cos_V1| {max(res['max_abs_cos_diff_vs_V1'][k].values()):.2e} "
+            f"dropped {[res['zca'][f'{r}/{k}']['n_dropped'] for r in reps]}" for k, v in res["range_all"].items()), flush=True)
+        return
     cos = {}
     for r, E in reps.items():
         c, info = sims(E, E[i_new], E[i_old], i1, i2)
