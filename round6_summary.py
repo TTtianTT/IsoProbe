@@ -331,5 +331,47 @@ def s5():
     print("\n".join(L))
 
 
+# ---------------------------------------------------------------- S6
+
+def s6():
+    rows = [l.rstrip("\n").split("\t") for l in open("configs/round6_polypythia.tsv") if l.strip()]
+    L = ["# Round 6 S6: PolyPythias step 143000 (descriptive; collapse = V1 ||ubar||^2 >= 0.9 and W_U s1^2/sum >= 0.5)\n",
+         "| model | V1 ‖ū‖² | A V1 | A V3 | W_U σ₁²/Σσ² | \\|cos(ū_V1, v₁(W_U·γ))\\| | max/med \\|γ\\| | ‖β‖/‖γ‖ | loss (round-3 eval) | 0a | fold | collapsed |",
+         "|---|" + "---|" * 11]
+    out = {}
+    ref = {}
+    for m in ("pythia-70m", "pythia-160m"):
+        r = json.load(open(f"results/round4/dyn/{m}/step143000.json"))
+        sp = json.load(open(f"results/round5/spec/{m}/step143000.json"))
+        ref[m] = (r, sp["W_U"]["s1sq_over_sum"], sp["align_V1_WUgamma"]["abs_cos_v1"])
+    for repo, rev in [(f"EleutherAI/{m}", "step143000") for m in ("pythia-70m", "pythia-160m")] + rows:
+        name = repo.split("/")[1]
+        if name in ref:
+            r, s1, cs = ref[name]
+            tag = f"{name} (seed 0, round 4/5)"
+            col = r["step1"]["V1"]["all"]["ubar_sq"] >= 0.9 and s1 >= 0.5
+        else:
+            f = f"results/round6/poly/{name}/{rev}.json"
+            if not os.path.exists(f):
+                continue
+            r = json.load(open(f))
+            s1, cs, col, tag = r["spec"]["W_U"]["s1sq_over_sum"], r["spec"]["align_V1_WUgamma"]["abs_cos_v1"], r["collapsed"], name
+            out[name] = {"ubar_sq_V1": r["step1"]["V1"]["all"]["ubar_sq"], "s1sq_over_sum": s1, "collapsed": col,
+                         "loss": r["function"]["loss_base"]}
+        g = r["gamma_beta"]
+        L.append(f"| {tag} | {r['step1']['V1']['all']['ubar_sq']:.3f} | {r['step1']['V1']['all']['isotropy_full']:.3f} | "
+                 f"{r['step1']['V3']['all']['isotropy_full']:.3f} | {s1:.3f} | {cs:.3f} | {g['gamma_max_over_median']:.1f} | "
+                 f"{g['beta_over_gamma']:.2f} | {r['function']['loss_base']:.3f} | {r['check0a']['max_rel_err']:.1e} | "
+                 f"{r['fold']['max_rel_err']:.1e} | {'yes' if col else 'no'} |")
+    for m in ("pythia-70m", "pythia-160m"):
+        ks = [k for k in out if k.startswith(m + "-seed")]
+        n = sum(out[k]["collapsed"] for k in ks)
+        out[f"{m}_n_collapsed"] = n
+        L.append(f"\n- {m}: {n}/{len(ks)} new seeds collapsed (seed 0 from rounds 4/5: collapsed)")
+    json.dump(out, open("results/round6/poly/summary.json", "w"), indent=1)
+    open("results/round6/poly/summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+
+
 if __name__ == "__main__":
-    {"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5}[sys.argv[1]]()
+    {"s1": s1, "s2": s2, "s3": s3, "s4": s4, "s5": s5, "s6": s6}[sys.argv[1]]()
