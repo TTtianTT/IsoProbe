@@ -1,0 +1,9 @@
+{
+ "model": "pythia-70m",
+ "revision": "step57000",
+ "loss": 4.419855309882498,
+ "n_tokens": 507012,
+ "loss_out": 4.461458726787278,
+ "n_tokens_out": 308782,
+ "batch": 32
+}

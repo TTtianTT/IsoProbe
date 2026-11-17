@@ -106,7 +106,7 @@ def run(model_name, rev, arm, seed, args):
         print(f"[{model_name}@{rev} {tag}] resumed at step {step}", flush=True)
 
     @torch.no_grad()
-    def evaluate():
+    def evaluate(g=g, bt=bt, W=W):
         tot, n = 0.0, 0
         for c in range(0, len(Y), 4096):
             V1 = normalize(X[c:c + 4096].float(), C.ntype, C.eps)
@@ -118,6 +118,7 @@ def run(model_name, rev, arm, seed, args):
 
     if step == 0:
         res["evals"]["0"] = evaluate()
+        res["loss_orig_head"] = evaluate(C.gamma, beta0, C.W)  # D_raw in the same evaluation path (prereg T5)
     while step < total:
         ext = step >= T
         for pg in opt.param_groups:

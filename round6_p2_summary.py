@@ -280,8 +280,8 @@ def t4():
     L = ["# Round 6 phase 2 T4: ordering of residual-stream collapse and head spike across seeds\n"]
     out = {"seeds": {}}
     grid70 = list(range(50000, 143001, 1000))
-    L.append("| model | n ckpts | V1 ‖ū‖² start → end | σ₁²/Σσ² start → end | t50 ‖ū‖² | t50 σ₁² | t50 loss | ‖ū‖² first? | t50 loss − t50 ‖ū‖² |")
-    L.append("|---|---|---|---|---|---|---|---|---|")
+    L.append("| model | n ckpts | V1 ‖ū‖² start → end | σ₁²/Σσ² start → end | t50 ‖ū‖² | t50 σ₁² | t50 loss | ‖ū‖² first? | t50 σ₁² − t50 ‖ū‖² | t50 loss − t50 ‖ū‖² |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|")
     for size, start, seeds in (("pythia-70m", 50000, [None] + list(range(1, 10))), ("pythia-160m", 80000, [None] + list(range(1, 10)))):
         for k in seeds:
             name = size if k is None else f"{size}-seed{k}"
@@ -300,7 +300,7 @@ def t4():
                                   "ub_start_end": [ub[0], ub[-1]], "s1_start_end": [s1[0], s1[-1]], "steps": st,
                                   "ub": ub, "s1": s1, "loss": [b for _, b in lo], "loss_steps": [a for a, _ in lo]}
             L.append(f"| {name} | {len(st)} | {ub[0]:.3f} → {ub[-1]:.3f} | {s1[0]:.3f} → {s1[-1]:.3f} | {tu} | {ts} | {tl} | "
-                     f"{'yes' if out['seeds'][name]['ubar_first'] else 'no'} | {(tl - tu) if (tl and tu) else '–'} |")
+                     f"{'yes' if out['seeds'][name]['ubar_first'] else 'no'} | {(ts - tu) if (ts and tu) else '–'} | {(tl - tu) if (tl and tu) else '–'} |")
     col = [f"pythia-70m-seed{k}" for k in range(2, 10)]
     use = [n for n in col if n in out["seeds"] and out["seeds"][n]["complete_grid"]]
     n_yes = sum(out["seeds"][n]["ubar_first"] for n in use)
@@ -308,6 +308,13 @@ def t4():
     out["P7-5"] = {"seeds_used": use, "n_yes": n_yes, "n": len(use), "need": need, "pass": len(use) > 0 and n_yes >= need}
     L.append(f"\n- **P7-5**: t50(V1 ‖ū‖²) < t50(σ₁²/Σσ²) in {n_yes}/{len(use)} collapsed 70m seeds with a complete grid "
              f"(need ≥ {need}) -> {('PASS' if out['P7-5']['pass'] else 'FAIL') if use else 'NOT EVALUABLE (no complete grid yet)'}")
+    for grp, names in (("70m seeds 2-9", col), ("160m all seeds", ["pythia-160m"] + [f"pythia-160m-seed{k}" for k in range(1, 10)])):
+        v = [out["seeds"][n] for n in names if n in out["seeds"]]
+        g1 = [x["t50_s1"] - x["t50_ubar"] for x in v]
+        g2 = [x["t50_loss"] - x["t50_ubar"] for x in v if x["t50_loss"] is not None]
+        nf = sum(x["ubar_first"] for x in v)
+        L.append(f"- {grp}: ‖ū‖² strictly first in {nf}/{len(v)}; t50 σ₁² − t50 ‖ū‖² median {int(np.median(g1))} (range {min(g1)} – {max(g1)}); "
+                 f"t50 loss − t50 ‖ū‖² median {int(np.median(g2))} (range {min(g2)} – {max(g2)}, {sum(x > 0 for x in g2)}/{len(g2)} > 0)")
     # 160m cross-correlation of first differences
     xc = {}
     for k in (1, 3, 6, 9):
@@ -352,5 +359,139 @@ def t4():
     print("wrote figs/r6p2_fig4_t50_by_seed.png")
 
 
+def t3check():
+    L = ["# Round 6 phase 2 T3 numerical check (prereg T3 amendment): eigh vs SVD vs SVD with numerical-rank tolerance\n",
+         "| model | route | 7-rep range | dropped (V1, V3, D_Amax, D_Amin, lin0-2) | max |cos − cos_V1| |", "|---|---|---|---|---|"]
+    out = {}
+    for f in sorted(glob.glob("results/round6/p2/whiten_check/*.json")):
+        r = json.load(open(f))
+        reps = ["V1", "V3", "D_Amax", "D_Amin", "lin0", "lin1", "lin2"]
+        out[r["model"]] = {k: {"range": v, "dropped": [r["zca"][f"{x}/{k}"]["n_dropped"] for x in reps],
+                               "max_cos_diff": max(r["max_abs_cos_diff_vs_V1"][k].values())} for k, v in r["range_all"].items()}
+        for k, v in out[r["model"]].items():
+            L.append(f"| {r['model']} | {k} | {v['range']:.2e} | {v['dropped']} | {v['max_cos_diff']:.2e} |")
+    ok = [m for m, v in out.items() if v["svd_ranktol"]["range"] < 1e-6]
+    L.append(f"\n- route (c) svd_ranktol range < 1e-6 in {len(ok)}/{len(out)} checked models: {ok}")
+    L.append("- reading (prereg amendment): (c) < 1e-6 for Qwen3-8B and Qwen3-8B-Base -> numerical/threshold issue, stop condition not triggered; "
+             "otherwise stop condition")
+    json.dump(out, open("results/round6/p2/whiten_check/summary.json", "w"), indent=1)
+    open("results/round6/p2/whiten_check/summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+
+
+def last_eval(r):
+    k = max(r["evals"], key=int)
+    return int(k), r["evals"][k]
+
+
+def t5():
+    runs = {}
+    for f in glob.glob("results/round6/p2/refit/*/*/*.json"):
+        r = json.load(open(f))
+        runs[(r["model"], r["revision"], r["arm"], r["seed"])] = r
+    L = ["# Round 6 phase 2 T5: reduced-head refit (gamma, beta, W_U) on frozen bodies\n",
+         "| model | rev | arm | seed | complete | extended | loss orig. head | loss refit (step) | σ₁²/Σσ² start → end | σ₁/σ₂ end | |cos(ū, v₁)| end |",
+         "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for key in sorted(runs, key=lambda k: (SIZES.index(k[0]), step_of(k[1]), k[2], k[3])):
+        r = runs[key]
+        st, le = last_eval(r)
+        se = r.get("spec_end") or {}
+        L.append(f"| {key[0]} | {key[1]} | {key[2]} | {key[3]} | {r['complete']} | {r['extended']} | {r.get('loss_orig_head', float('nan')):.4f} | "
+                 f"{le:.4f} ({st}) | {r['spec_start']['s1sq_over_sum']:.3f} → {se.get('s1sq_over_sum', float('nan')):.3f} | "
+                 f"{se.get('s1_over_s2', float('nan')):.2f} | {se.get('abs_cos_ubar_v1', float('nan')):.3f} |")
+    out = {"runs": {"/".join(map(str, k)): {"complete": v["complete"], "extended": v["extended"], "loss_orig_head": v.get("loss_orig_head"),
+                                            "loss_refit": last_eval(v)[1], "last_step": last_eval(v)[0], "spec_start": v["spec_start"],
+                                            "spec_end": v.get("spec_end")} for k, v in runs.items()}, "D": {}}
+    L.append("\n| model | pre → post | D_raw | D_refit (random head) | per-seed D_refit | D_refit / D_raw | reading |")
+    L.append("|---|---|---|---|---|---|---|")
+    for m, pre in (("pythia-70m", "step50000"), ("pythia-160m", "step80000"), ("pythia-410m", "step80000")):
+        post = "step143000"
+        seeds = sorted({k[3] for k in runs if k[0] == m and k[1] == post and k[2] == "random"}
+                       & {k[3] for k in runs if k[0] == m and k[1] == pre and k[2] == "random"})
+        seeds = [s for s in seeds if runs[(m, post, "random", s)]["complete"] and runs[(m, pre, "random", s)]["complete"]]
+        if not seeds:
+            continue
+        a, b = runs[(m, post, "random", seeds[0])], runs[(m, pre, "random", seeds[0])]
+        draw = a["loss_orig_head"] - b["loss_orig_head"]
+        per = [last_eval(runs[(m, post, "random", s)])[1] - last_eval(runs[(m, pre, "random", s)])[1] for s in seeds]
+        dref = float(np.mean(per))
+        ratio = dref / draw if draw > 0 else None
+        read = ("not interpreted (D_raw ≤ 0)" if draw <= 0 else "readout side" if ratio <= 0.25 else "body side" if ratio >= 0.75 else "mixed")
+        out["D"][m] = {"pre": pre, "post": post, "D_raw": draw, "D_refit": dref, "per_seed": dict(zip(seeds, per)), "ratio": ratio, "reading": read}
+        L.append(f"| {m} | {pre} → {post} | {draw:+.4f} | {dref:+.4f} | {', '.join(f'{x:+.4f}' for x in per)} | "
+                 f"{'–' if ratio is None else f'{ratio:.2f}'} | {read} |")
+    p6 = [runs.get(("pythia-70m", "step143000", "random", s)) for s in (0, 1, 2)]
+    if all(r is not None and r["complete"] for r in p6):
+        v = [r["spec_end"]["s1sq_over_sum"] for r in p6]
+        out["P7-6"] = {"s1sq_over_sum": v, "pass": all(x < 0.5 for x in v)}
+        L.append(f"\n- **P7-6**: 70m step143000 random-init refit σ₁²/Σσ² = {', '.join(f'{x:.3f}' for x in v)} -> "
+                 f"{'PASS' if out['P7-6']['pass'] else 'FAIL'} (all < 0.5)")
+    else:
+        L.append("\n- **P7-6**: not evaluable yet (runs incomplete)")
+    json.dump(out, open("results/round6/p2/refit/summary.json", "w"), indent=1)
+    open("results/round6/p2/refit/summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+    plt = plt_setup()
+    fig, axs = plt.subplots(1, 2, figsize=(10, 3.8))
+    cols = {"step50000": C1, "step80000": C1, "step110000": C3, "step143000": C2}
+    for (m, rev, arm, sd), r in sorted(runs.items()):
+        if m != "pythia-70m":
+            continue
+        ks = sorted(r["evals"], key=int)
+        ls = {"random": "-", "own": "--", "trunc": ":"}[arm]
+        axs[0].plot([int(k) for k in ks[1:]], [r["evals"][k] for k in ks[1:]], ls, color=cols[rev], lw=1.5,
+                    label=f"{rev} {arm}" if sd == 0 else None)
+        if arm == "random":
+            axs[0].axhline(r["loss_orig_head"], color=cols[rev], lw=0.8, alpha=0.6)
+    axs[0].set_xlabel("refit step"); axs[0].set_ylabel("eval loss (nats/token)")
+    axs[0].set_title("70m refit eval loss (thin lines: original head)", fontsize=10, loc="left")
+    axs[0].legend(frameon=False, fontsize=7)
+    names = [k for k in sorted(runs, key=lambda k: (SIZES.index(k[0]), step_of(k[1]), k[2], k[3])) if runs[k].get("spec_end")]
+    x = np.arange(len(names))
+    axs[1].bar(x - 0.2, [runs[k]["spec_start"]["s1sq_over_sum"] if k[2] != "random" else np.nan for k in names], 0.4, color=GRAY_, label="start (own/trunc)")
+    axs[1].bar(x + 0.2, [runs[k]["spec_end"]["s1sq_over_sum"] for k in names], 0.4, color=C1, label="after refit")
+    axs[1].axhline(0.5, color=C2, lw=1, ls="--")
+    axs[1].set_xticks(x); axs[1].set_xticklabels([f"{k[0][7:]} {k[1][4:]} {k[2]} s{k[3]}" for k in names], rotation=70, fontsize=6)
+    axs[1].set_ylabel("σ₁²/Σσ² of W·diag(γ)"); axs[1].legend(frameon=False, fontsize=7)
+    axs[1].set_title("head spectrum after refit", fontsize=10, loc="left")
+    fig.tight_layout(); fig.savefig("figs/r6p2_fig5_refit.png", dpi=160)
+    print("wrote figs/r6p2_fig5_refit.png")
+
+
+def t6():
+    L = ["# Round 6 phase 2 T6 (exploratory): full fine-tuning of pythia-70m\n",
+         "| start | arm | λ | V1 ‖ū‖² 0 → end | σ₁²/Σσ² 0 → end | eval loss 0 → end | steps |", "|---|---|---|---|---|---|---|"]
+    out = {}
+    runs = {}
+    for f in sorted(glob.glob("results/round6/p2/ft/*.json")):
+        if f.endswith("summary.json"):
+            continue
+        r = json.load(open(f))
+        runs[(r["revision"], r["arm"], r["lambda"])] = r
+    for k, r in sorted(runs.items()):
+        ks = sorted(r["metrics"], key=int)
+        a, b = r["metrics"][ks[0]], r["metrics"][ks[-1]]
+        out["/".join(map(str, k))] = {"metrics": r["metrics"]}
+        L.append(f"| {k[0]} | {k[1]} | {k[2]:g} | {a['ubar_sq_V1']:.3f} → {b['ubar_sq_V1']:.3f} | {a['s1sq_over_sum']:.3f} → {b['s1sq_over_sum']:.3f} | "
+                 f"{a['eval_loss']:.4f} → {b['eval_loss']:.4f} | {ks[-1]} |")
+    os.makedirs("results/round6/p2/ft", exist_ok=True)
+    json.dump(out, open("results/round6/p2/ft/summary.json", "w"), indent=1)
+    open("results/round6/p2/ft/summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+    plt = plt_setup()
+    fig, axs = plt.subplots(1, 3, figsize=(11, 3.4))
+    cols = {"plain": C1, "rpen": C2, "ctrlpen": C3}
+    for (rev, arm, lam), r in sorted(runs.items()):
+        ks = sorted(r["metrics"], key=int)
+        for ax, key in zip(axs, ("ubar_sq_V1", "s1sq_over_sum", "eval_loss")):
+            ax.plot([int(k) for k in ks], [r["metrics"][k][key] for k in ks], "-o" if rev == "step143000" else "--s",
+                    color=cols[arm], ms=4, lw=1.5, label=f"{rev[4:]} {arm}")
+    for ax, t in zip(axs, ("V1 ‖ū‖²", "W_U σ₁²/Σσ²", "eval loss")):
+        ax.set_title(t, fontsize=10, loc="left"); ax.set_xlabel("fine-tuning step")
+    axs[0].legend(frameon=False, fontsize=7)
+    fig.tight_layout(); fig.savefig("figs/r6p2_fig6_finetune.png", dpi=160)
+    print("wrote figs/r6p2_fig6_finetune.png")
+
+
 if __name__ == "__main__":
-    {"t1": t1, "t2": t2, "t3": t3, "t4": t4}[sys.argv[1]]()
+    {"t1": t1, "t2": t2, "t3": t3, "t3check": t3check, "t4": t4, "t5": t5, "t6": t6}[sys.argv[1]]()
