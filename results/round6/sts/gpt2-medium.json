@@ -1,0 +1,79 @@
+{
+ "model": "gpt2-medium",
+ "path": "/dataset1/zailong/models/gpt2-medium",
+ "norm_type": "LayerNorm",
+ "template": "This sentence : \"{}\" means in one word:\"",
+ "n_fit": 2000,
+ "n_sentences": 4552,
+ "mean_tokens": {
+  "mean": 19.777899824253076
+ },
+ "check0a_max_rel_err": 0.00273839826695621,
+ "scores": {
+  "stsb/mean/V1/raw": 37.97915478512037,
+  "stsb/mean/V1/zscore": 50.623777040063366,
+  "stsb/mean/V3/raw": 17.157649231137135,
+  "stsb/mean/V3/zscore": 50.623777040063366,
+  "stsb/mean/V3hs/raw": 17.21925360184135,
+  "stsb/mean/V3hs/center": 3.5532243291592867
+ },
+ "delta": {
+  "stsb/mean/raw": {
+   "delta": 20.821505553983236,
+   "ci_lo": 16.63581007823057,
+   "ci_hi": 24.755893694355287
+  },
+  "stsb/mean/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  }
+ },
+ "layers": {},
+ "n_boot": 1000,
+ "gauge": {
+  "stsb/mean/D_Amax/raw": 31.93939406359591,
+  "stsb/mean/D_Amax/zscore": 50.623777040063366,
+  "stsb/mean/D_Amin/raw": 21.583424461649244,
+  "stsb/mean/D_Amin/zscore": 50.623777040063366,
+  "stsb/mean/D_rand0/raw": 42.68065727880707,
+  "stsb/mean/D_rand0/zscore": 50.623777040063366,
+  "stsb/mean/D_rand1/raw": 31.87042662708444,
+  "stsb/mean/D_rand1/zscore": 50.623777040063366,
+  "stsb/mean/D_rand2/raw": 45.66192810299372,
+  "stsb/mean/D_rand2/zscore": 50.623777040063366,
+  "stsb/mean/hstar_unif/raw": 38.0044357867911,
+  "stsb/mean/hstar_unif/zscore": 47.94915610149505,
+  "stsb/mean/hstar_pi/raw": 32.746473094374615,
+  "stsb/mean/hstar_pi/zscore": 42.35688437645899,
+  "stsb/mean/P6-4/D_Amax": 0.0,
+  "stsb/mean/P6-4/D_Amin": 0.0,
+  "stsb/mean/P6-4/D_rand0": 0.0,
+  "stsb/mean/P6-4/D_rand1": 0.0,
+  "stsb/mean/P6-4/D_rand2": 0.0,
+  "stsb/mean/P6-4/V3": 0.0,
+  "stsb/mean/delta_hstar_unif_raw_minus_V3_raw": {
+   "delta": 20.846786555653964,
+   "ci_lo": 16.517413812635933,
+   "ci_hi": 25.080923576706354
+  },
+  "stsb/mean/delta_hstar_unif_raw_minus_V3_zscore": {
+   "delta": -12.619341253272268,
+   "ci_lo": -15.839565586785788,
+   "ci_hi": -9.697933757846805
+  },
+  "stsb/mean/delta_hstar_pi_raw_minus_V3_raw": {
+   "delta": 15.58882386323748,
+   "ci_lo": 11.277338219445594,
+   "ci_hi": 20.015974063054802
+  },
+  "stsb/mean/delta_hstar_pi_raw_minus_V3_zscore": {
+   "delta": -17.87730394568875,
+   "ci_lo": -20.89938209467634,
+   "ci_hi": -14.581243029581142
+  }
+ },
+ "checkA1_zscore_max_abs_delta": 0.0,
+ "checkA1_pass": true,
+ "elapsed_s": 62.612147092819214
+}

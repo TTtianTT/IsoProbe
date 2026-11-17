@@ -190,7 +190,7 @@ def s2():
         y = len(ms) - 1 - i
         r = rows[m]
         lo, hi = min(r["Amin_raw"], r["Amax_raw"], *r["rand_raw"]), max(r["Amin_raw"], r["Amax_raw"], *r["rand_raw"])
-        ax.plot([lo, hi], [y, y], color=GRAY, lw=2, zorder=1, label="diagonal gauges (raw)" if i == 0 else None)
+        ax.plot([lo, hi], [y, y], color=GRAY, lw=2, zorder=1, label="5 diagonal gauges, cond ≤ 100 (raw)" if i == 0 else None)
         for x, mk, c, lab in ((r["V1_raw"], "o", C1, "V1 raw"), (r["V3_raw"], "s", C2, "V3 raw"),
                               (r["hu_raw"], "D", C3, "h* uniform raw"), (r["hp_raw"], "^", C4, "h* unigram raw")):
             ax.scatter(x, y, marker=mk, s=38, color=c, edgecolor="white", lw=1.2, zorder=3, label=lab if i == 0 else None)

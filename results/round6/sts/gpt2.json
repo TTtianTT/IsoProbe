@@ -1,0 +1,79 @@
+{
+ "model": "gpt2",
+ "path": "/dataset1/zailong/models/gpt2",
+ "norm_type": "LayerNorm",
+ "template": "This sentence : \"{}\" means in one word:\"",
+ "n_fit": 2000,
+ "n_sentences": 4552,
+ "mean_tokens": {
+  "mean": 19.777899824253076
+ },
+ "check0a_max_rel_err": 0.0022936188615858555,
+ "scores": {
+  "stsb/mean/V1/raw": 42.604096100843,
+  "stsb/mean/V1/zscore": 47.31176498747577,
+  "stsb/mean/V3/raw": 26.326568376225108,
+  "stsb/mean/V3/zscore": 47.31176498747577,
+  "stsb/mean/V3hs/raw": 26.275569358402656,
+  "stsb/mean/V3hs/center": 9.366435681815837
+ },
+ "delta": {
+  "stsb/mean/raw": {
+   "delta": 16.277527724617894,
+   "ci_lo": 12.650593186033486,
+   "ci_hi": 19.654338957043834
+  },
+  "stsb/mean/zscore": {
+   "delta": 0.0,
+   "ci_lo": 0.0,
+   "ci_hi": 0.0
+  }
+ },
+ "layers": {},
+ "n_boot": 1000,
+ "gauge": {
+  "stsb/mean/D_Amax/raw": 19.802522119489065,
+  "stsb/mean/D_Amax/zscore": 47.31176498747577,
+  "stsb/mean/D_Amin/raw": 31.897494249332425,
+  "stsb/mean/D_Amin/zscore": 47.31176498747577,
+  "stsb/mean/D_rand0/raw": 40.948055255583874,
+  "stsb/mean/D_rand0/zscore": 47.31176498747577,
+  "stsb/mean/D_rand1/raw": 39.195009460123046,
+  "stsb/mean/D_rand1/zscore": 47.31176498747577,
+  "stsb/mean/D_rand2/raw": 39.021866886344796,
+  "stsb/mean/D_rand2/zscore": 47.31176498747577,
+  "stsb/mean/hstar_unif/raw": 33.4493061253718,
+  "stsb/mean/hstar_unif/zscore": 44.68439613746511,
+  "stsb/mean/hstar_pi/raw": 29.327896265325176,
+  "stsb/mean/hstar_pi/zscore": 37.77666848509085,
+  "stsb/mean/P6-4/D_Amax": 0.0,
+  "stsb/mean/P6-4/D_Amin": 0.0,
+  "stsb/mean/P6-4/D_rand0": 0.0,
+  "stsb/mean/P6-4/D_rand1": 0.0,
+  "stsb/mean/P6-4/D_rand2": 0.0,
+  "stsb/mean/P6-4/V3": 0.0,
+  "stsb/mean/delta_hstar_unif_raw_minus_V3_raw": {
+   "delta": 7.12273774914669,
+   "ci_lo": 3.098501392446445,
+   "ci_hi": 11.13831730217836
+  },
+  "stsb/mean/delta_hstar_unif_raw_minus_V3_zscore": {
+   "delta": -13.86245886210397,
+   "ci_lo": -16.984046003008775,
+   "ci_hi": -11.070197803482134
+  },
+  "stsb/mean/delta_hstar_pi_raw_minus_V3_raw": {
+   "delta": 3.001327889100068,
+   "ci_lo": -0.9622553028053271,
+   "ci_hi": 7.054018937550697
+  },
+  "stsb/mean/delta_hstar_pi_raw_minus_V3_zscore": {
+   "delta": -17.983868722150593,
+   "ci_lo": -21.004115395238266,
+   "ci_hi": -14.97287797878249
+  }
+ },
+ "checkA1_zscore_max_abs_delta": 0.0,
+ "checkA1_pass": true,
+ "elapsed_s": 40.80074405670166
+}
