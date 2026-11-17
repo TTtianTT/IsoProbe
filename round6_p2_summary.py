@@ -323,6 +323,8 @@ def t4():
         nf = sum(x["ubar_first"] for x in v)
         L.append(f"- {grp}: ‖ū‖² strictly first in {nf}/{len(v)}; t50 σ₁² − t50 ‖ū‖² median {int(np.median(g1))} (range {min(g1)} – {max(g1)}); "
                  f"t50 loss − t50 ‖ū‖² median {int(np.median(g2))} (range {min(g2)} – {max(g2)}, {sum(x > 0 for x in g2)}/{len(g2)} > 0)")
+        rise = [x["loss"][-1] - min(x["loss"]) for x in v if len(x["loss"]) >= 3]
+        L.append(f"  - {grp}: fp32 eval-loss rise (end − in-window min) median {np.median(rise):.4f} (range {min(rise):.4f} – {max(rise):.4f}, n={len(rise)})")
     # 160m cross-correlation of first differences
     xc = {}
     for k in (1, 3, 6, 9):

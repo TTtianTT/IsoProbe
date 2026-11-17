@@ -1,0 +1,10 @@
+{
+ "model": "pythia-70m-seed5",
+ "revision": "step52000",
+ "loss": 4.329351037615858,
+ "n_tokens": 507012,
+ "loss_out": 4.374586179260747,
+ "n_tokens_out": 308782,
+ "batch": 32,
+ "dtype": "fp32"
+}
