@@ -307,7 +307,7 @@ def t4():
     need = 7 if len(use) == 8 else len(use) - 1
     out["P7-5"] = {"seeds_used": use, "n_yes": n_yes, "n": len(use), "need": need, "pass": len(use) > 0 and n_yes >= need}
     L.append(f"\n- **P7-5**: t50(V1 ‖ū‖²) < t50(σ₁²/Σσ²) in {n_yes}/{len(use)} collapsed 70m seeds with a complete grid "
-             f"(need ≥ {need}) -> {'PASS' if out['P7-5']['pass'] else 'FAIL'}")
+             f"(need ≥ {need}) -> {('PASS' if out['P7-5']['pass'] else 'FAIL') if use else 'NOT EVALUABLE (no complete grid yet)'}")
     # 160m cross-correlation of first differences
     xc = {}
     for k in (1, 3, 6, 9):

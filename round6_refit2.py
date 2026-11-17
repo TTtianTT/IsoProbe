@@ -47,9 +47,10 @@ def prepare_full():
     print(f"{len(lines)} lines, {len(ids)} tokens -> {nc} chunks of {rc.CHUNK}", flush=True)
 
 
-def lr_at(step, total=10000, warm=500, peak=1e-3, ext=False):
-    if ext:  # extension phase: cosine from 1e-4 to 0 over 10000 steps
-        return 1e-4 * 0.5 * (1 + math.cos(math.pi * min(step, 10000) / 10000))
+def lr_at(step, total=10000, peak=1e-3, ext=False):
+    warm = min(500, total // 20)  # 500 at the preregistered total of 10000
+    if ext:  # extension phase: cosine from 1e-4 to 0 over another `total` (10000) steps
+        return 1e-4 * 0.5 * (1 + math.cos(math.pi * min(step, total) / total))
     if step < warm:
         return peak * (step + 1) / warm
     return peak * 0.5 * (1 + math.cos(math.pi * (step - warm) / (total - warm)))
@@ -92,7 +93,8 @@ def run(model_name, rev, arm, seed, args):
     opt = torch.optim.AdamW([g, bt, W], lr=1e-3, weight_decay=0.0, betas=(0.9, 0.999))
     res = {"model": model_name, "revision": rev, "arm": arm, "seed": seed, "evals": {}, "train_trace": [],
            "spec_start": head_spec(W.detach(), g.detach(), u), "extended": False, "complete": False}
-    step, total = 0, 10000
+    T, E = args.total, args.total // 10  # T = 10000 steps, eval every E = 1000 (smoke tests only change T)
+    step, total = 0, T
     saves = sorted(glob.glob(os.path.join(cdir, "step*.pt")), key=lambda f: int(f.split("step")[-1][:-3]))
     if saves:
         s = torch.load(saves[-1], weights_only=False, map_location=rc.DEV)
@@ -100,7 +102,7 @@ def run(model_name, rev, arm, seed, args):
             g.copy_(s["g"]); bt.copy_(s["bt"]); W.copy_(s["W"])
         opt.load_state_dict(s["opt"])
         res, step = s["res"], s["step"]
-        total = 20000 if res["extended"] else 10000
+        total = 2 * T if res["extended"] else T
         print(f"[{model_name}@{rev} {tag}] resumed at step {step}", flush=True)
 
     @torch.no_grad()
@@ -117,9 +119,9 @@ def run(model_name, rev, arm, seed, args):
     if step == 0:
         res["evals"]["0"] = evaluate()
     while step < total:
-        ext = step >= 10000
+        ext = step >= T
         for pg in opt.param_groups:
-            pg["lr"] = lr_at(step - 10000 if ext else step, ext=ext)
+            pg["lr"] = lr_at(step - T if ext else step, total=T, ext=ext)
         idx = perm[(step * 16) % len(chunks): (step * 16) % len(chunks) + 16]
         ids = chunks[idx].long().to(rc.DEV)
         with torch.no_grad():
@@ -132,15 +134,15 @@ def run(model_name, rev, arm, seed, args):
         step += 1
         if step % 100 == 0:
             res["train_trace"].append((step, loss.item()))
-        if step % 1000 == 0:
+        if step % E == 0:
             res["evals"][str(step)] = evaluate()
-            if step == 10000 and not res["extended"]:
-                drop = res["evals"]["9000"] - res["evals"]["10000"]
+            if step == T and not res["extended"]:
+                drop = res["evals"][str(T - E)] - res["evals"][str(T)]
                 res["drop_last_1000"] = drop
                 if drop > 0.005:
-                    res["extended"], total = True, 20000
+                    res["extended"], total = True, 2 * T
             if step == total:
-                res["drop_last_1000_final"] = res["evals"][str(step - 1000)] - res["evals"][str(step)]
+                res["drop_last_1000_final"] = res["evals"][str(step - E)] - res["evals"][str(step)]
                 res["spec_end"] = head_spec(W.detach(), g.detach(), u)
                 res["complete"] = True
             res["elapsed_s"] = res.get("elapsed_s", 0) + time.time() - t0
@@ -167,6 +169,7 @@ def main():
     ap.add_argument("--max_tokens", type=int, default=0)
     ap.add_argument("--out", default="results/round6/p2/refit/")
     ap.add_argument("--cache", default="cache/round6/p2/refit/")
+    ap.add_argument("--total", type=int, default=10000, help="steps of the main phase; change only for smoke tests")
     args = ap.parse_args()
     if args.mode == "prepare":
         prepare_full()

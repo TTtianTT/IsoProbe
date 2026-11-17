@@ -65,6 +65,13 @@ def eval_loss(path, bs=32, max_len=512):
     return {"loss": tot / n, "n_tokens": n, "loss_out": tot_out / n_out, "n_tokens_out": n_out, "batch": bs}
 
 
+def dump_atomic(obj, fn):
+    tmp = fn + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(obj, f, indent=1)
+    os.replace(tmp, fn)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--list", default="configs/round6_polypythia.tsv")
@@ -94,7 +101,7 @@ def main():
         if (args.eval or args.eval_only) and not os.path.exists(efn):
             e = eval_loss(ckpt_dir(repo, rev))
             os.makedirs(os.path.dirname(efn), exist_ok=True)
-            json.dump({"model": name, "revision": rev, **e}, open(efn, "w"), indent=1)
+            dump_atomic({"model": name, "revision": rev, **e}, efn)
             print(f"[{name}@{rev}] eval loss {e['loss']:.4f} ({e['n_tokens']} tokens)", flush=True)
         if args.eval_only or os.path.exists(fn):
             continue
@@ -114,7 +121,7 @@ def main():
         ub1 = res["step1"]["V1"]["all"]["ubar_sq"]
         res["collapsed"] = bool(ub1 >= 0.9 and st["s1sq_over_sum"] >= 0.5)
         os.makedirs(os.path.dirname(fn), exist_ok=True)
-        json.dump(res, open(fn, "w"), indent=1)
+        dump_atomic(res, fn)
         print(f"[{name}@{rev}] V1 ubar^2={ub1:.3f} A V1={res['step1']['V1']['all']['isotropy_full']:.3f} "
               f"V3={res['step1']['V3']['all']['isotropy_full']:.3f} s1^2/sum={st['s1sq_over_sum']:.3f} "
               f"cos1={res['spec']['align_V1_WUgamma']['abs_cos_v1']:.3f} loss={res['function']['loss_base']:.3f} "
