@@ -126,6 +126,17 @@ def analyze(cache, out_dir, n_boot=1000, seed=0):
             "top30_target_H": [(tok.decode([int(t)]), n) for t, n in collections.Counter(B["tgt"][H].tolist()).most_common(30)],
             "sign_of_p_minus_c_H": {"pos": int(((B["p"] - B["c"])[H] > 0).sum()), "neg": int(((B["p"] - B["c"])[H] < 0).sum())},
         }
+        # exploratory: share of tokens that decode to an incomplete UTF-8 byte sequence (U+FFFD), i.e. byte-level pieces
+        vocab_ids = np.unique(np.concatenate([B["inp"], B["tgt"]]))
+        bad = np.zeros(int(vocab_ids.max()) + 1, bool)
+        for t in vocab_ids:
+            bad[t] = "\ufffd" in tok.decode([int(t)])
+        r["2b"]["explore_incomplete_utf8"] = {
+            "input_H": float(bad[B["inp"][H]].mean()), "input_all": float(bad[B["inp"]].mean()),
+            "target_H": float(bad[B["tgt"][H]].mean()), "target_all": float(bad[B["tgt"]].mean()),
+            "share_of_all_incomplete_inputs_in_H": float((bad[B["inp"]] & H).sum() / max(bad[B["inp"]].sum(), 1))}
+        r["2b"]["top30_input_H_raw"] = [(tok.convert_ids_to_tokens(int(t)), n) for t, n in
+                                        collections.Counter(B["inp"][H].tolist()).most_common(30)]
         u1 = B["u1"]
         top = np.argsort(-np.abs(u1))[:30]
         r["2b"]["top30_u1"] = [(tok.decode([int(t)]) if t < len(tok) else f"<pad {t}>", float(u1[t])) for t in top]

@@ -10,7 +10,7 @@ import sys
 
 import numpy as np
 
-from round6_summary import C1, C2, C3, C4, plt_setup
+from round6_summary import C1, C2, C3, C4, GRAY as GRAY_, plt_setup
 
 SIZES = ["pythia-70m", "pythia-160m", "pythia-410m", "pythia-1.4b"]
 REPS = [("V1", "V1", C1, "o"), ("V3", "V3", C2, "s"), ("hstar_unif", "h* (uniform)", C3, "D"), ("hstar_pi", "h* (unigram)", C4, "^")]
@@ -117,5 +117,62 @@ def t1():
     print("wrote figs/r6p2_fig1_collapse_invariant.png")
 
 
+# ---------------------------------------------------------------- T2
+
+def t2():
+    r = json.load(open("results/round6/p2/tokens/summary.json"))
+    dt = json.load(open("results/round6/p2/tokens/deviation_traj.json"))
+    L = ["# Round 6 phase 2 T2: saturation split and the high-deviation tokens\n",
+         "| model | Δloss (mean) | q | k | share of Σd in H | share in complement [95% CI] | mean d in H / complement | class |",
+         "|---|---|---|---|---|---|---|---|"]
+    for m, v in r.items():
+        for q, s_ in v["split"].items():
+            L.append(f"| {m} | {v['mean_d']:+.4f} | {q} | {s_['k']} | {s_['share_H']:.4f} | {s_['share_complement']:.4f} "
+                     f"[{s_['share_complement_ci'][0]:.4f}, {s_['share_complement_ci'][1]:.4f}] | {s_['mean_d_H']:+.3f} / "
+                     f"{s_['mean_d_complement']:+.3f} | {s_['class']} |")
+    L.append("\n| model | ρ(dev, −log f input) | ρ(dev, −log f target) | ρ(dev, entropy) | loss H / compl. | entropy H / compl. | "
+             "incomplete-UTF-8 input: H / all | share of all such inputs in H |")
+    L.append("|---|---|---|---|---|---|---|---|")
+    p72 = {}
+    for m, v in r.items():
+        b = v["2b"]
+        e = b["explore_incomplete_utf8"]
+        p72[m] = b["spearman_dev_vs_neglogfreq_input"]
+        L.append(f"| {m} | {b['spearman_dev_vs_neglogfreq_input']:+.3f} | {b['spearman_dev_vs_neglogfreq_target']:+.3f} | "
+                 f"{b['spearman_dev_vs_entropy']:+.3f} | {b['loss_H']:.3f} / {b['loss_complement']:.3f} | "
+                 f"{b['entropy_H']:.3f} / {b['entropy_complement']:.3f} | {e['input_H']:.3f} / {e['input_all']:.4f} | "
+                 f"{e['share_of_all_incomplete_inputs_in_H']:.3f} |")
+    ok = all(p72[m] > 0.2 for m in ("pythia-70m", "pythia-160m"))
+    L.append(f"\n- **P7-2**: ρ(dev, −log f input) = 70m {p72['pythia-70m']:+.3f}, 160m {p72['pythia-160m']:+.3f} -> "
+             f"{'PASS' if ok else 'FAIL'} (both > 0.2 required)")
+    L.append("\n## 2c t50 (report only)\n")
+    for m, v in dt.items():
+        L.append(f"- {m} (window from {v['window_start']}): " + ", ".join(f"{k} {t}" for k, t in v["t50"].items()))
+    json.dump({"P7-2": p72, "P7-2_pass": ok}, open("results/round6/p2/tokens/decisions.json", "w"), indent=1)
+    open("results/round6/p2/tokens/summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+    plt = plt_setup()
+    fig, axes = plt.subplots(1, 2, figsize=(9.5, 3.6))
+    cols = {"pythia-70m": C1, "pythia-160m": C2, "pythia-410m": C3}
+    mk = {"pythia-70m": "o", "pythia-160m": "s", "pythia-410m": "D"}
+    for m, v in r.items():
+        qs = [float(q[:-1]) for q in v["split"]]
+        axes[0].plot(qs, [100 * s_["share_H"] for s_ in v["split"].values()], color=cols[m], marker=mk[m], lw=1.6,
+                     label=m.replace("pythia-", "Pythia-") + (" (loss fell)" if v["mean_d"] < 0 else ""))
+        axes[1].plot(qs, [s_["mean_d_H"] for s_ in v["split"].values()], color=cols[m], marker=mk[m], lw=1.6)
+        axes[1].axhline(v["mean_d"], color=cols[m], lw=1, ls=":")
+    axes[0].plot([0.1, 1], [0.1, 1], color=GRAY_, lw=1, ls="--", label="share = token fraction")
+    axes[0].set_xlabel("H = top q% of tokens by |p − c| at step 143000 (q, %)")
+    axes[0].set_ylabel("share of Σ Δloss in H (%)")
+    axes[0].legend(frameon=False, fontsize=7.5)
+    axes[0].set_title("Saturation is not carried by H", fontsize=10, loc="left")
+    axes[1].set_xlabel("q (%)")
+    axes[1].set_ylabel("mean Δloss per token in H (nats)")
+    axes[1].set_title("Δloss in H vs all tokens (dotted)", fontsize=10, loc="left")
+    fig.tight_layout()
+    fig.savefig("figs/r6p2_fig2_saturation_split.png", dpi=150)
+    print("wrote figs/r6p2_fig2_saturation_split.png")
+
+
 if __name__ == "__main__":
-    {"t1": t1}[sys.argv[1]]()
+    {"t1": t1, "t2": t2}[sys.argv[1]]()
