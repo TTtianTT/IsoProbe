@@ -77,6 +77,41 @@ def cosines(E, fit, variant, i1, i2):
     return (Z[i1] * Z[i2]).sum(-1)
 
 
+GAUGE_DIAG = ["D_Amax", "D_Amin", "D_rand0", "D_rand1", "D_rand2"]
+
+
+def gauge_scores(res, ds, p, E, gauge, n_fit, i1, i2, gold, boot):
+    """Round 6 S2: STS of gauge-transformed sentence embeddings (raw, zscore), P6-4 deltas and h* bootstrap CIs.
+
+    Linear maps commute with mean pooling, so every representation is computed from the fp64 pooled V1:
+    diagonal transforms D V1 (S1 worst cases and random G_diag, kappa 100) and h* = R [v; 1].
+    """
+    dev = E["V1"].device
+    diag = [k for k in GAUGE_DIAG if k in gauge]
+    reps = {k: E["V1"] * gauge[k].to(dev) for k in diag}
+    for pv in ("unif", "pi"):
+        R = gauge[f"R_{pv}"].to(dev)
+        reps[f"hstar_{pv}"] = E["V1"] @ R[:-1] + R[-1]
+    g = res.setdefault("gauge", {})
+    cos = {}
+    for v, H in reps.items():
+        for var in ("raw", "zscore"):
+            cos[(v, var)] = cosines(H, H[:n_fit], var, i1, i2)
+            g[f"{ds}/{p}/{v}/{var}"] = spearman100(cos[(v, var)], gold)
+    for v in diag + ["V3"]:  # P6-4: zscore is invariant under positive diagonal scaling (and the beta shift)
+        sc = g[f"{ds}/{p}/{v}/zscore"] if v != "V3" else res["scores"][f"{ds}/{p}/V3/zscore"]
+        g[f"{ds}/{p}/P6-4/{v}"] = sc - res["scores"][f"{ds}/{p}/V1/zscore"]
+    ref = {var: cosines(E["V3"], E["V3"][:n_fit], var, i1, i2) for var in ("raw", "zscore")}
+    for pv in ("unif", "pi"):
+        a = cos[(f"hstar_{pv}", "raw")]
+        for var in ("raw", "zscore"):
+            b = ref[var]
+            dl = np.array([spearman100(a[bi], gold[bi]) - spearman100(b[bi], gold[bi]) for bi in boot])
+            pt = g[f"{ds}/{p}/hstar_{pv}/raw"] - res["scores"][f"{ds}/{p}/V3/{var}"]
+            g[f"{ds}/{p}/delta_hstar_{pv}_raw_minus_V3_{var}"] = {
+                "delta": pt, "ci_lo": float(np.percentile(dl, 2.5)), "ci_hi": float(np.percentile(dl, 97.5))}
+
+
 @torch.no_grad()
 def main():
     ap = argparse.ArgumentParser()
@@ -89,6 +124,10 @@ def main():
     ap.add_argument("--variants", default=",".join(VARIANTS), help="subset of similarity variants (round 5: raw,center,zscore)")
     ap.add_argument("--no_layers", action="store_true", help="skip the layer sweep")
     ap.add_argument("--out_name", default=None, help="output file stem (default: model directory name)")
+    ap.add_argument("--datasets", default=",".join(STS), help="subset of datasets (round 6 S2: stsb)")
+    ap.add_argument("--pools", default=",".join(POOLS), help="subset of poolings (round 6 S2: mean)")
+    ap.add_argument("--gauge_cache", default=None,
+                    help="round 6 S2: dir with round6_gauge.py caches; adds gauge-transformed representations")
     args = ap.parse_args()
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -110,7 +149,8 @@ def main():
     L = model.config.num_hidden_layers
 
     fit = [json.loads(l)["text"] for l in open(args.fit)]
-    sts = load_sts()
+    sts = {k: v for k, v in load_sts().items() if k in args.datasets.split(",")}
+    pools = [p for p in POOLS if p in args.pools.split(",")]
     if args.max_pairs:
         sts = {k: v.iloc[:args.max_pairs] for k, v in sts.items()}
     sents = list(dict.fromkeys(fit + [s for df in sts.values() for c in ("sentence1", "sentence2") for s in df[c]]))
@@ -120,12 +160,12 @@ def main():
           + ", ".join(f"{k}: {len(v)} pairs" for k, v in sts.items()), flush=True)
 
     d = gamma.shape[0]
-    emb = {p: {v: torch.zeros(len(sents), d, dtype=torch.float64) for v in ("V1", "V3", "V3hs")} for p in POOLS}
+    emb = {p: {v: torch.zeros(len(sents), d, dtype=torch.float64) for v in ("V1", "V3", "V3hs")} for p in pools}
     lay = None if args.no_layers else {p: torch.zeros(L + 1, len(sents), d, dtype=torch.float16)
-                                       for p in POOLS}  # layer sweep (raw h_l)
-    rec_err, n_tok = 0.0, {p: [] for p in POOLS}
+                                       for p in pools}  # layer sweep (raw h_l)
+    rec_err, n_tok = 0.0, {p: [] for p in pools}
     for i, s in enumerate(sents):
-        for p in POOLS:
+        for p in pools:
             text = s if p == "mean" else TEMPLATE.format(s)
             ids = tok(text, add_special_tokens=True, return_tensors="pt")["input_ids"].to(dev)
             out = model(input_ids=ids, attention_mask=torch.ones_like(ids), output_hidden_states=True)
@@ -147,16 +187,24 @@ def main():
     del model
     torch.cuda.empty_cache()
 
+    gauge = None
+    if args.gauge_cache:
+        G = torch.load(os.path.join(args.gauge_cache, f"{slug}.pt"), weights_only=False)
+        gauge = {"D_Amax": G["worst_s"]["k100_A_max"], "D_Amin": G["worst_s"]["k100_A_min"],
+                 **{f"D_rand{r}": s_ for r, s_ in enumerate(G["diag_k100_s"][:3])}, "R_unif": G["R_unif"],
+                 "R_pi": G["R_pi"]}
+        res_gauge_check = (G["gamma"].double() - gamma.double().cpu()).abs().max().item()
+        print(f"[{slug}] gauge cache loaded; |gamma(cache) - gamma(model)| max {res_gauge_check:.1e}", flush=True)
     gen = torch.Generator().manual_seed(args.seed)
     res = {"model": slug, "path": path, "norm_type": ntype, "template": TEMPLATE, "n_fit": n_fit,
-           "n_sentences": len(sents), "mean_tokens": {p: float(np.mean(n_tok[p])) for p in POOLS},
+           "n_sentences": len(sents), "mean_tokens": {p: float(np.mean(n_tok[p])) for p in pools},
            "check0a_max_rel_err": rec_err, "scores": {}, "delta": {}, "layers": {}, "n_boot": args.n_boot}
     for ds, df in sts.items():
         i1 = torch.as_tensor([sid[s] for s in df["sentence1"]], device=dev)
         i2 = torch.as_tensor([sid[s] for s in df["sentence2"]], device=dev)
         gold = torch.as_tensor(df["score"].to_numpy().copy(), dtype=torch.float64, device=dev)
         boot = torch.randint(0, len(df), (args.n_boot, len(df)), generator=gen).to(dev)  # same draws for V1 and V3
-        for p in POOLS:
+        for p in pools:
             E = {v: emb[p][v].to(dev) for v in emb[p]}
             cos = {}
             for v in ("V1", "V3", "V3hs"):
@@ -170,14 +218,16 @@ def main():
                 pt = res["scores"][f"{ds}/{p}/V1/{var}"] - res["scores"][f"{ds}/{p}/V3/{var}"]
                 res["delta"][f"{ds}/{p}/{var}"] = {"delta": pt, "ci_lo": float(np.percentile(dl, 2.5)),
                                                    "ci_hi": float(np.percentile(dl, 97.5))}
+            if gauge is not None:  # round 6 S2: representations derived from the fp64 pooled V1
+                gauge_scores(res, ds, p, E, gauge, n_fit, i1, i2, gold, boot)
             for l in range(L + 1) if lay is not None else []:
                 Hl = lay[p][l].to(dev).double()
                 for var in ("raw", "center"):
                     res["layers"][f"{ds}/{p}/{l}/{var}"] = spearman100(cosines(Hl, Hl[:n_fit], var, i1, i2), gold)
         print(f"[{slug}] {ds}: " + "  ".join(
             f"{p}/{var} V1={res['scores'][f'{ds}/{p}/V1/{var}']:.1f} V3={res['scores'][f'{ds}/{p}/V3/{var}']:.1f}"
-            for p in POOLS for var in ("raw", "center", "zscore")), flush=True)
-    a1 = max(abs(res["delta"][f"{ds}/{p}/zscore"]["delta"]) for ds in sts for p in POOLS)
+            for p in pools for var in variants_run if var in ("raw", "center", "zscore")), flush=True)
+    a1 = max(abs(res["delta"][f"{ds}/{p}/zscore"]["delta"]) for ds in sts for p in pools)
     res["checkA1_zscore_max_abs_delta"] = a1
     res["checkA1_pass"] = a1 < 1e-6
     res["elapsed_s"] = time.time() - t0

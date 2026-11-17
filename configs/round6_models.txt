@@ -1,0 +1,12 @@
+Mistral-Small-24B-Instruct-2501
+Olmo-3.1-32B-Instruct
+Qwen3-32B
+Llama-3.1-8B
+Llama-3.1-8B-Instruct
+Qwen3-8B-Base
+Qwen3-8B
+Qwen2.5-7B-Instruct
+gpt2-xl
+gpt2-large
+gpt2-medium
+gpt2

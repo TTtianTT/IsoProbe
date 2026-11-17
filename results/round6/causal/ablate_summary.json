@@ -1,0 +1,20 @@
+{
+ "pythia-70m": {
+  "dl1": 0.9655285332576673,
+  "dl2": 0.49320872868900345,
+  "P6-8": false,
+  "dl_trunc_bias": 0.2885652360656854,
+  "P6-9": false,
+  "trunc_bias_minus_control": 0.460649212908681
+ },
+ "pythia-160m": {
+  "dl1": 1.5335118983595697,
+  "dl2": 0.6145506701666887,
+  "P6-8": false,
+  "dl_trunc_bias": 0.4249302733114062,
+  "P6-9": false,
+  "trunc_bias_minus_control": 0.5499230626170148
+ },
+ "P6-8_pass": false,
+ "P6-9_pass": false
+}
