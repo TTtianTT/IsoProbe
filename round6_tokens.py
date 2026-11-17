@@ -40,7 +40,8 @@ def dump(model_name, rev, cache):
         inp.extend(ids[:-1])
         para.extend([i] * (len(ids) - 1))
     assert len(inp) == len(Y)
-    bank_fn = next(f for f in (f"cache/round4_banks/{model_name}/{rev}.pt", f"cache/round5_banks/{model_name}/{rev}.pt")
+    bank_fn = next(f for f in (f"cache/round4_banks/{model_name}/{rev}.pt", f"cache/round5_banks/{model_name}/{rev}.pt",
+                               f"cache/round6/poly_banks/{model_name}/{rev}.pt")  # last: PolyPythias seeds (fallback 2)
                    if os.path.exists(f))
     b = torch.load(bank_fn, weights_only=False)
     V1b = normalize(b["x"].to(rc.DEV).float(), b["norm_type"], b["eps"])
@@ -73,14 +74,17 @@ def spearman_fast(a, b):
     return float(spearman(a, b)[0])
 
 
-def analyze(cache, out_dir, n_boot=1000, seed=0):
+def analyze(cache, out_dir, n_boot=1000, seed=0, models=None):
     from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained("/dataset1/zailong/models/ckpts/pythia-70m/step143000", local_files_only=True)
     counts = np.load("cache/unigrams/8fed1dc1b157.npy").astype(np.float64)
     nlf = -np.log((counts + 1) / (counts.sum() + len(counts)))  # add-1 smoothed -log frequency
     res = {}
     rng = np.random.default_rng(seed)
-    for m, (r0, r1) in PAIRS.items():
+    pairs = dict(PAIRS, **{f"pythia-70m-seed{k}": ("step50000", "step143000") for k in (2, 3)}) if models else PAIRS
+    for m, (r0, r1) in pairs.items():
+        if models and m not in models:
+            continue
         f0, f1 = (os.path.join(cache, m, f"{r}.npz") for r in (r0, r1))
         if not (os.path.exists(f0) and os.path.exists(f1)):
             continue
@@ -155,9 +159,10 @@ def main():
     ap.add_argument("--list", default="configs/round6_p2_tokens.tsv")
     ap.add_argument("--cache", default=CACHE)
     ap.add_argument("--out", default="results/round6/p2/tokens/")
+    ap.add_argument("--models", default="", help="comma list for analyze (fallback 2: pythia-70m-seed2,pythia-70m-seed3)")
     args = ap.parse_args()
     if args.mode == "analyze":
-        analyze(args.cache, args.out)
+        analyze(args.cache, args.out, models=[m for m in args.models.split(",") if m] or None)
         return
     torch.backends.cuda.enable_cudnn_sdp(False)
     torch.backends.cuda.matmul.allow_tf32 = False
