@@ -533,22 +533,30 @@ def t6():
         out["/".join(map(str, k))] = {"metrics": r["metrics"]}
         L.append(f"| {k[0]} | {k[1]} | {k[2]:g} | {a['ubar_sq_V1']:.3f} → {b['ubar_sq_V1']:.3f} | {a['s1sq_over_sum']:.3f} → {b['s1sq_over_sum']:.3f} | "
                  f"{a['eval_loss']:.4f} → {b['eval_loss']:.4f} | {ks[-1]} |")
+    L.append("\n- eval-loss trajectory (step: loss) of the R-pen runs:")
+    for k, r in sorted(runs.items()):
+        if k[1] == "rpen":
+            ks = sorted(r["metrics"], key=int)
+            L.append(f"  - {k[0]} λ={k[2]:g}: " + ", ".join(f"{s}: {r['metrics'][s]['eval_loss']:.3f}" for s in ks)
+                     + f"; V1 ‖ū‖² at step {ks[1]}: {r['metrics'][ks[1]]['ubar_sq_V1']:.3f}")
     os.makedirs("results/round6/p2/ft", exist_ok=True)
     json.dump(out, open("results/round6/p2/ft/summary.json", "w"), indent=1)
     open("results/round6/p2/ft/summary.md", "w").write("\n".join(L) + "\n")
     print("\n".join(L))
     plt = plt_setup()
     fig, axs = plt.subplots(1, 3, figsize=(11, 3.4))
-    cols = {"plain": C1, "rpen": C2, "ctrlpen": C3}
+    cols = {"plain": C1, "ctrlpen": C3}
+    rcol = {1.0: C2, 0.1: C4, 10.0: GRAY_}
     for (rev, arm, lam), r in sorted(runs.items()):
         ks = sorted(r["metrics"], key=int)
         for ax, key in zip(axs, ("ubar_sq_V1", "s1sq_over_sum", "eval_loss")):
             ax.plot([int(k) for k in ks], [r["metrics"][k][key] for k in ks], "-o" if rev == "step143000" else "--s",
-                    color=cols[arm], ms=4, lw=1.5, label=f"{rev[4:]} {arm}")
+                    color=rcol[float(lam)] if arm == "rpen" else cols[arm], ms=4, lw=1.5, label=f"{rev[4:]} {arm}" + (f" λ={lam:g}" if arm == "rpen" else ""))
     for ax, t in zip(axs, ("V1 ‖ū‖²", "W_U σ₁²/Σσ²", "eval loss")):
         ax.set_title(t, fontsize=10, loc="left"); ax.set_xlabel("fine-tuning step")
-    axs[0].legend(frameon=False, fontsize=7)
-    fig.tight_layout(); fig.savefig("figs/r6p2_fig6_finetune.png", dpi=160)
+    h, l = axs[0].get_legend_handles_labels()
+    fig.legend(h, l, loc="lower center", ncol=4, frameon=False, fontsize=8)
+    fig.tight_layout(rect=(0, 0.13, 1, 1)); fig.savefig("figs/r6p2_fig6_finetune.png", dpi=160)
     print("wrote figs/r6p2_fig6_finetune.png")
 
 
