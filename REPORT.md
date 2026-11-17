@@ -855,6 +855,9 @@ CPU array 71458（12 个任务，`%12`，每任务 16 核，约 1.5 分钟）与
 
 ### T2：饱和集中在哪里，那 0.1% 的 token 是什么
 
+> **精度注记（00:20）**：本节的 loss 来自 bf16 主体路径。整个模型 fp32 时，70m 50000 → 143000 的 loss 上升只有 0.049（bf16 主体路径 0.167），
+> 160m 为 0.0875（0.1188）。fp32 主体的核查见本章末"精度核查"一节；在那之前本节关于 loss 的结论都是暂定的。
+
 GPU array 71470（6 个任务，`%2`，约 1 分钟）；CPU 71471（2c）、71480 与重跑（分析）。代码 `round6_tokens.py`（dump / analyze）、`round6_tokens_cpu.py`；
 逐 token 的 npz 在 `cache/round6/p2/tokens/`（不进 git），汇总 `results/round6/p2/tokens/summary.{md,json}`、`deviation_traj.json`。
 dump 的平均 loss 与阶段一 S4 的基线逐位相同（70m 4.3681 / 4.5355）。
@@ -948,6 +951,9 @@ GPU array 71510（2 个任务，各约 2 小时 6 分钟；之前 71505 / 71507 
   160m 只有 seed 1、3、6、9 是密网格。
 
 ### T5：输出头重拟合（完整版）
+
+> **精度注记（00:20）**：本节的 loss 来自 bf16 主体路径。整个模型 fp32 时，70m 50000 → 143000 的 loss 上升只有 0.049（bf16 主体路径 0.167），
+> 160m 为 0.0875（0.1188）。fp32 主体的核查见本章末"精度核查"一节；在那之前本节关于 loss 的结论都是暂定的。
 
 GPU array 71536（15 次运行，`%2`，每次 6 – 12 分钟）；smoke 71535（独立目录，已删除）。代码 `round6_refit2.py`，结果 `results/round6/p2/refit/`，
 汇总 `results/round6/p2/refit/summary.{md,json}`。冻结 final norm 之前的全部参数，在 wikitext-103 train 上训练 γ、β、W_U；评估集是 wikitext-103
