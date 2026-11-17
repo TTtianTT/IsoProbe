@@ -428,6 +428,8 @@ def t5():
         out["D"][m] = {"pre": pre, "post": post, "D_raw": draw, "D_refit": dref, "per_seed": dict(zip(seeds, per)), "ratio": ratio, "reading": read}
         L.append(f"| {m} | {pre} → {post} | {draw:+.4f} | {dref:+.4f} | {', '.join(f'{x:+.4f}' for x in per)} | "
                  f"{'–' if ratio is None else f'{ratio:.2f}'} | {read} |")
+    L.append("\n- last-interval eval drop (10000 steps: 9000 → 10000; extended: 19000 → 20000): " + "; ".join(
+        f"{k[0][7:]} {k[1][4:]} {k[2]} s{k[3]} {runs[k].get('drop_last_1000_final', float('nan')):+.4f}" for k in sorted(runs) if runs[k]["complete"]))
     p6 = [runs.get(("pythia-70m", "step143000", "random", s)) for s in (0, 1, 2)]
     if all(r is not None and r["complete"] for r in p6):
         v = [r["spec_end"]["s1sq_over_sum"] for r in p6]
@@ -451,8 +453,9 @@ def t5():
                     label=f"{rev} {arm}" if sd == 0 else None)
         if arm == "random":
             axs[0].axhline(r["loss_orig_head"], color=cols[rev], lw=0.8, alpha=0.6)
+    axs[0].set_ylim(3.5, 6.0)
     axs[0].set_xlabel("refit step"); axs[0].set_ylabel("eval loss (nats/token)")
-    axs[0].set_title("70m refit eval loss (thin lines: original head)", fontsize=10, loc="left")
+    axs[0].set_title("70m refit eval loss (thin lines: original head;\nown/trunc arms peak above 30 at step 1000, clipped)", fontsize=9, loc="left")
     axs[0].legend(frameon=False, fontsize=7)
     names = [k for k in sorted(runs, key=lambda k: (SIZES.index(k[0]), step_of(k[1]), k[2], k[3])) if runs[k].get("spec_end")]
     x = np.arange(len(names))
