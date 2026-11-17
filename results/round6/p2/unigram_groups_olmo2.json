@@ -1,0 +1,17 @@
+{
+ "n_lines": 196181,
+ "n_chars": 90000184,
+ "groups": {
+  "3c24b42c9fcd": {
+   "models": [
+    "main"
+   ],
+   "n_tokens": 20113295,
+   "vocab_len": 100278,
+   "n_types_ge5": 42933
+  }
+ },
+ "model_group": {
+  "main": "3c24b42c9fcd"
+ }
+}
