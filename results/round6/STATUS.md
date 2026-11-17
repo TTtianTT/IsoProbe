@@ -39,15 +39,35 @@ PolyPythias 的中间 checkpoint（尤其 160m）。
 
 # 阶段二进度（2026-11-17 起）
 
+更新于 2026-11-18 04:55（Asia/Singapore）。T0 – T6 与第 9 节补充 1 – 4 全部完成，所有结果已 commit 并 push；队列中没有残留作业（`squeue` 为空）。
+按计划：第 9 节补充项已全部做完，不再开新实验；服务器重启后不自动续跑，等待用户确认。
+
 | 任务 | 状态 | 作业号 | 判定 / 备注 |
 |---|---|---|---|
 | T0 | 完成 | — | 停机条件未触发（Cain 2026 只在机制上部分重合）；h* = Park et al. 因果内积几何 |
 | T1 | 完成 | CPU 71457、71458 | P7-1 不成立（70m +0.115）；坍缩在 h* 中表现为公共均值方向（‖ū‖² 0.998） |
 | T2 | 完成 | GPU 71470；CPU 71471、71480、分析重跑 | 2a 弥散（补集 ≥ 0.983）；P7-2 不成立（70m +0.133）；H 主要是 UTF-8 字节片段 |
 | T3 | 完成 | GPU 71482；核查 71528 | 数值核查：SVD + 数值秩容差下 4/4 极差 < 1e-6，停止条件未触发；P7-3 按预注册不成立（极差 0.0196，只有 Qwen3-8B/-Base 的 V3，1e-12 阈值丢掉 1 个特征值）；P7-4 不成立（8/12） |
-| T4 | P7-5 完成；loss 重算中 | GPU 71510（array 0-1）；fp32 评估 loss CPU 71542（array 0-11） | P7-5 成立（8/8）；bf16 评估 loss 作废（坍缩 checkpoint 上偏高约 1.1 nat），fp32 重算 |
-| T5 | 完成 | GPU 71536（array 0-14%2）；smoke 71535（目录已删） | P7-6 成立（0.181 / 0.181 / 0.182）；D_refit/D_raw 70m 1.45、160m 1.24 → 身体侧 |
-| T6 | 完成 | GPU 71568（array 0-4%2）； `slurm/round6_p2_ft.sbatch`；CPU smoke 71539（目录已删） | 探索性：R-pen 把 ‖ū‖² 压到 0.019 / 0.009；从 143000 出发 loss 4.574 对普通续训 3.6345 |
+| T4 | 完成 | GPU 71505、71507（取消）、71510；fp32 评估 loss CPU 71542（超时于 884/1300）、71623（续完 1300/1300） | P7-5 成立（8/8）；fp32 loss：70m seed 2 – 9 的 t50 loss − t50 ‖ū‖² 中位数 −7000（2/8 > 0），loss 后期上升中位数 0.0643 nat；bf16 版作废 |
+| T5 | 完成 | GPU 71536（array 0-14%2）；smoke 71535（目录已删） | P7-6 成立（0.181 / 0.181 / 0.182）；身体侧（bf16 主体 D_refit/D_raw 70m 1.45、160m 1.24；fp32 主体 3.29、1.38） |
+| T6 | 完成 | GPU 71568（array 0-4%2）；CPU smoke 71539（目录已删） | 探索性：R-pen 把 ‖ū‖² 压到 0.019 / 0.009；从 143000 出发 loss 4.574 对普通续训 3.6345 |
+| 补充 1 | 完成 | GPU 71576（任务 0 – 7） | T5 随机头 3 seed：160m D_refit +0.1478 ×3，410m 平均 −0.0119 |
+| 补充 2 | 完成 | GPU 71576（任务 8 – 9） | 70m seed 2/3：补集占比 0.991 / 0.997，ρ 0.116 / 0.100 |
+| 精度核查 | 完成 | GPU 71593（array 0-8%2）；CPU 71579 | fp32 主体下 70m 50000 → 143000 loss 上升 0.0490（bf16 主体 0.1674）；T2 / T5 的分类不变 |
+| 补充 3 | 完成 | GPU 71617（array 0-11%2）；smoke 71615（gpt2、小拟合集，独立目录，已删） | SICK-R mean / STS-B PromptEOL：秩容差路径白化极差 12/12 为 0；zscore G_lin 极差 > 0.5 为 8/12、6/12；白化 − zscore CI > 0 为 12/12、4/12 |
+| 补充 4 | 完成 | GPU 71656（array 0-1%2） | R-pen λ = 0.1 / 10：‖ū‖² 0.862 / 0.017，loss 3.6345 / 5.1958（普通续训 3.6345） |
+
+**资源（阶段二，sacct）**：GPU 约 21.0 GPU 小时（全部为 1 张 B300 的任务，任何时刻 ≤ 2 张，GPU array 都是 `%2` 且同一时间只有一个）；
+CPU 约 2100 核小时，其中 fp32 评估 loss（71542 + 71623）约 1910。下载 PolyPythias 1142 个 checkpoint 共 182 GB（< 500 GB）。
+
+**续跑命令**（都跳过已有输出；目前没有未完成项）。先 `source slurm/env.sh; unset PYTHONPATH`：
+- T1：`sbatch --array=0-11%12 slurm/round6_p2_traj.sbatch`；T2：`sbatch --array=0-5%2 slurm/round6_p2_tokens.sbatch`
+- T3：`sbatch --array=0-11%2 slurm/round6_p2_whiten.sbatch`；核查 `sbatch --array=0-3%2 slurm/round6_p2_whiten_check.sbatch`
+- T4：`sbatch --array=0-1%2 slurm/round6_p2_poly.sbatch`；fp32 loss `sbatch --array=0-11%12 slurm/round6_p2_evalfp32.sbatch`
+- T5：`sbatch --array=0-14%2 slurm/round6_p2_refit.sbatch`；T6：`sbatch --array=0-4%2 slurm/round6_p2_ft.sbatch`
+- 补充 1 – 2：`sbatch --array=0-9%2 slurm/round6_p2_fallback.sbatch`；精度核查：`sbatch --array=0-8%2 slurm/round6_p2_fp32check.sbatch`
+- 补充 3：`sbatch --array=0-11%2 slurm/round6_p2_fb3.sbatch`；补充 4：`sbatch --array=0-1%2 slurm/round6_p2_ft.sbatch --list configs/round6_p2_ft_extra.tsv`
+- 所有 sbatch 都需要加 `--deadline=<截止时间>`。汇总：`$PY round6_p2_summary.py t1|t2|t3|t3check|t4|t5|t6|fb3`
 
 问题记录（阶段二）：
 - 19:2x 发现最初的下载进程已全部退出（4 个停在下载中途），886/1142 行完成；用 `--shard k/6` 重启 6 个进程（已完成的行按 `.complete` 跳过）。
@@ -56,3 +76,8 @@ PolyPythias 的中间 checkpoint（尤其 160m）。
 - 22:40 发现 T4 的评估 loss（bf16 模型 logit）在坍缩 checkpoint 上严重偏高，撤回 REPORT 中的 loss t50 结论，预注册追加修订后用 fp32 重算（CPU 71542）。
 - 00:15 精度问题：bf16 主体路径（阶段一 S4、T2、T5）把 70m 50000 → 143000 的 loss 上升从 0.049（fp32）放大到 0.167；160m 0.0875 对 0.1188。
   预注册追加了精度核查（fp32 主体重做 T2 导出与 T5 seed 0），排在补充 1 – 2 之后。前几轮基于 bf16 主体的 loss 数值（dyn loss_base 等）可能同样受影响，未改动。
+- 01:30 fp32 评估 loss 的 CPU array 71542 在 3 小时上限处超时（884/1300，没有残留临时文件），续交 71623 完成剩余部分（03:48）。
+- fp32 下 T4 的 loss 后期上升只有百分之几 nat，loss t50 对噪声敏感；REPORT 中 loss 与 ‖ū‖² 的先后只作描述。
+- 补充 3 中 eigh 1e-12 路径在 SICK-R 上另有 GPT-2 large / xl 极差 6.3e-6 / 1.2e-6（> 1e-6）；秩容差路径全部为 0。
+- commit 中的一处预注册时间戳写错（01:25 → 01:05），已在随后的 commit 中更正。
+- 所有 push 均一次成功。
