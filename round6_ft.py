@@ -23,7 +23,7 @@ from measure import final_norm_module, load_samples
 from round3_lib import normalize
 
 FULL = "cache/round6/p2/train_chunks_full.pt"
-DEV = "cuda:0"
+DEV = os.environ.get("ISO_DEV", "cuda:0")  # ISO_DEV=cpu only for smoke tests
 N_VOC = 50277
 
 
@@ -103,7 +103,7 @@ def run(rev, arm, lam, args):
         opt.step()
         if step % 50 == 0:
             res["trace"].append((step, loss.item(), pen.item()))
-        if step % 500 == 0:
+        if step % args.every == 0:
             res["metrics"][str(step)] = measure(model, tok, norm, cap, eval_enc, None)
             print(f"[{rev} {arm} l={lam:g}] step {step} {res['metrics'][str(step)]} pen {pen.item():.4f} "
                   f"({time.time() - t0:.0f}s)", flush=True)
@@ -117,6 +117,7 @@ def main():
     ap.add_argument("--list", default="configs/round6_p2_ft.tsv")
     ap.add_argument("--rows", default="0")
     ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--every", type=int, default=500, help="measurement interval; change only for smoke tests")
     ap.add_argument("--out", default="results/round6/p2/ft/")
     args = ap.parse_args()
     torch.manual_seed(0)

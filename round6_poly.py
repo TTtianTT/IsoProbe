@@ -31,11 +31,14 @@ def head_from_bin(path):
 
 
 @torch.no_grad()
-def eval_loss(path, bs=32, max_len=512):
+def eval_loss(path, bs=32, max_len=512, dtype="bf16"):
+    """dtype bf16: the first T4 path (bf16 logits; inflated by up to ~1.8 nats on collapsed checkpoints, superseded).
+    dtype fp32: whole model in fp32 (phase 2 T4 amendment). Device from ISO_DEV (default cuda:0)."""
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    dev = "cuda:0"
+    dev = os.environ.get("ISO_DEV", "cuda:0")
     tok = AutoTokenizer.from_pretrained(path, local_files_only=True)
-    model = AutoModelForCausalLM.from_pretrained(path, dtype=torch.bfloat16, device_map=dev, local_files_only=True).eval()
+    model = AutoModelForCausalLM.from_pretrained(path, dtype={"bf16": torch.bfloat16, "fp32": torch.float32}[dtype],
+                                                 device_map=dev, local_files_only=True).eval()
     rows = [json.loads(l) for l in open("data/eval_loss_round6.jsonl")]
     enc = [tok(r["text"], add_special_tokens=True, truncation=True, max_length=max_len)["input_ids"] for r in rows]
     flag = [bool(r["in_samples"]) for r in rows]
@@ -62,7 +65,7 @@ def eval_loss(path, bs=32, max_len=512):
         n_out += int(cnt[out].sum())
     del model
     torch.cuda.empty_cache()
-    return {"loss": tot / n, "n_tokens": n, "loss_out": tot_out / n_out, "n_tokens_out": n_out, "batch": bs}
+    return {"loss": tot / n, "n_tokens": n, "loss_out": tot_out / n_out, "n_tokens_out": n_out, "batch": bs, "dtype": dtype}
 
 
 def dump_atomic(obj, fn):
@@ -81,6 +84,7 @@ def main():
     ap.add_argument("--eval_only", action="store_true")
     ap.add_argument("--eval_out", default="results/round6/p2/poly_eval/")
     ap.add_argument("--cache", default="cache/round6/poly_banks/")
+    ap.add_argument("--eval_dtype", default="bf16", choices=["bf16", "fp32"], help="fp32 with --eval_out results/round6/p2/poly_eval_fp32/")
     args = ap.parse_args()
     torch.backends.cuda.enable_cudnn_sdp(False)
     torch.backends.cuda.matmul.allow_tf32 = False
@@ -99,7 +103,7 @@ def main():
             continue
         efn = os.path.join(args.eval_out, name, f"{rev}.json")
         if (args.eval or args.eval_only) and not os.path.exists(efn):
-            e = eval_loss(ckpt_dir(repo, rev))
+            e = eval_loss(ckpt_dir(repo, rev), dtype=args.eval_dtype)
             os.makedirs(os.path.dirname(efn), exist_ok=True)
             dump_atomic({"model": name, "revision": rev, **e}, efn)
             print(f"[{name}@{rev}] eval loss {e['loss']:.4f} ({e['n_tokens']} tokens)", flush=True)

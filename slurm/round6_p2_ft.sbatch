@@ -14,5 +14,5 @@ set -euo pipefail
 cd /dataset1/zailong/workspace/IsoProbe
 unset PYTHONPATH
 source slurm/env.sh
-echo "task ${SLURM_ARRAY_TASK_ID:-0} on $(hostname): $(sed -n "$((${SLURM_ARRAY_TASK_ID:-0}+1))p" configs/round6_p2_ft.tsv)"
-$PY round6_ft.py --rows "${ROWS:-${SLURM_ARRAY_TASK_ID:-0}}" "$@"
+R=${ROWS:-${SLURM_ARRAY_TASK_ID:-0}}; echo "rows $R on $(hostname)"
+$PY round6_ft.py --rows "$R" "$@"

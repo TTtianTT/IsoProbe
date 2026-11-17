@@ -200,6 +200,12 @@
 | 无方向 | loss 的 t50 与 V1 ‖ū‖² 的 t50 的先后 | 每个 seed 报告差值（含 70m seed 1 与原 seed） |
 | 无方向 | 160m：V1 ‖ū‖² 与 σ₁²/Σσ² 哪个领先 | seed 1、3、6、9（每 1000 一个）：两条序列的一阶差分在滞后 −5 … +5 个 checkpoint 上的互相关，按 seed 报告并给出 4 个 seed 的平均；正滞后表示 V1 ‖ū‖² 领先 |
 
+- **评估 loss 路径修订（追加于 22:45，T4 结果出来之后、fp32 重算之前）**：上面写的"与阶段一 fp32 路径相差在 bf16 舍入量级"是错的。
+  bf16 模型的 logit 在坍缩的 checkpoint 上有很大的公共偏移，bf16 舍入使 loss 偏高：70m 的 846 个 seed checkpoint 中，‖ū‖² > 0.95 的那些
+  比 dyn 的 loss_base（fp32 头）平均高 1.117（最多 1.794），‖ū‖² < 0.8 的只高 0.036。所以 T4 已报告的 loss t50 作废。
+  修订：全部 1142 + 158 个 checkpoint 用整个模型 fp32 重算评估 loss（同一数据、同一批量与 padding，CPU，`--eval_dtype fp32`，
+  输出 `results/round6/p2/poly_eval_fp32/`），t50 定义不变。P7-5 只用 ‖ū‖² 与 σ₁²/Σσ²，不受影响。bf16 的结果保留在 `results/round6/p2/poly_eval/`，标为作废。
+
 ## T5：输出头重拟合（完整版）（追加于 18:50，任何 T5 计算之前）
 
 - 代码 `round6_refit2.py`，行表 `configs/round6_p2_refit.tsv`（15 次运行）。冻结 final norm 之前的全部参数，训练 γ、β、W_U（fp32）。

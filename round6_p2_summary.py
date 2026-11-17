@@ -279,7 +279,7 @@ def seed_series(name):
                     rows[st] = {"ub": json.load(open(f))["step1"]["V1"]["all"]["ubar_sq"],
                                 "s1": json.load(open(sp))["W_U"]["s1sq_over_sum"]}
     for st in list(rows):
-        e = f"results/round6/p2/poly_eval/{name}/step{st}.json"
+        e = f"results/round6/p2/poly_eval_fp32/{name}/step{st}.json"  # fp32 path (T4 amendment); poly_eval/ (bf16) is superseded
         rows[st]["loss"] = json.load(open(e))["loss"] if os.path.exists(e) else None
     return rows
 
