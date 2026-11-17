@@ -203,6 +203,14 @@ def t3():
     L.append(f"- **P7-4**: models with zscore range over 3 G_lin samples > 0.5: {n74}/{len(R)} -> {'PASS' if n74 >= 10 else 'FAIL'} (≥ 10)")
     L.append("- zscore range over V1/V3/D_Amax/D_Amin (new fit / old fit): max " +
              f"{max(v['zscore_range_diag'] for v in out['rows'].values()):.2e} / {max(v['zscore_old_range_diag'] for v in out['rows'].values()):.2e}")
+    dws = {m: r["delta"]["V1/whiten-zscore"] for m, r in R.items()}
+    L.append(f"- V1 whiten − zscore: 95% CI above 0 in {sum(d['ci_lo'] > 0 for d in dws.values())}/{len(dws)} models, "
+             f"includes 0 in {sum(d['ci_lo'] <= 0 <= d['ci_hi'] for d in dws.values())}, below 0 in {sum(d['ci_hi'] < 0 for d in dws.values())}; "
+             f"delta range {min(d['delta'] for d in dws.values()):+.2f} – {max(d['delta'] for d in dws.values()):+.2f}")
+    zz = {m: r["delta"]["V1/zscore-zscore_oldfit"] for m, r in R.items()}
+    L.append(f"- V1 zscore (new fit) − zscore (old fit): range {min(d['delta'] for d in zz.values()):+.2f} – {max(d['delta'] for d in zz.values()):+.2f}; "
+             f"CI excludes 0 in {sum(d['ci_lo'] > 0 or d['ci_hi'] < 0 for d in zz.values())}/{len(zz)}")
+    L.append(f"- models with zscore G_lin range ≤ 0.5: " + ", ".join(f"{m} {r['range_lin']['zscore']:.2f}" for m, r in R.items() if r["range_lin"]["zscore"] <= 0.5))
     L.append("- dropped eigenvalues per representation (V1, V3, D_Amax, D_Amin, lin0-2): "
              + "; ".join(f"{m} {list(v['dropped'].values())}" for m, v in out["rows"].items()))
     L.append("- max condition number of the kept spectrum over the 7 representations: " +

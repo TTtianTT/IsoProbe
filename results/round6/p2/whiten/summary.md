@@ -18,5 +18,8 @@
 - **P7-3**: max whitened-STS range over 7 representations = 0.0196 -> FAIL (< 1e-6)
 - **P7-4**: models with zscore range over 3 G_lin samples > 0.5: 8/12 -> FAIL (≥ 10)
 - zscore range over V1/V3/D_Amax/D_Amin (new fit / old fit): max 0.00e+00 / 0.00e+00
+- V1 whiten − zscore: 95% CI above 0 in 10/12 models, includes 0 in 2, below 0 in 0; delta range -0.03 – +5.09
+- V1 zscore (new fit) − zscore (old fit): range -0.05 – +0.17; CI excludes 0 in 2/12
+- models with zscore G_lin range ≤ 0.5: Llama-3.1-8B-Instruct 0.48, Mistral-Small-24B-Instruct-2501 0.43, Olmo-3.1-32B-Instruct 0.27, Qwen3-32B 0.33
 - dropped eigenvalues per representation (V1, V3, D_Amax, D_Amin, lin0-2): gpt2 [1, 1, 1, 1, 1, 1, 1]; gpt2-medium [1, 1, 1, 1, 1, 1, 1]; gpt2-large [1, 1, 1, 1, 1, 1, 1]; gpt2-xl [1, 1, 1, 1, 1, 1, 1]; Qwen2.5-7B-Instruct [0, 0, 0, 0, 0, 0, 0]; Llama-3.1-8B [0, 0, 0, 0, 0, 0, 0]; Llama-3.1-8B-Instruct [0, 0, 0, 0, 0, 0, 0]; Qwen3-8B-Base [0, 1, 0, 0, 0, 0, 0]; Qwen3-8B [0, 1, 0, 0, 0, 0, 0]; Mistral-Small-24B-Instruct-2501 [0, 0, 0, 0, 0, 0, 0]; Olmo-3.1-32B-Instruct [0, 0, 0, 0, 0, 0, 0]; Qwen3-32B [0, 0, 0, 0, 0, 0, 0]
 - max condition number of the kept spectrum over the 7 representations: gpt2 3.4e+09; gpt2-medium 9.8e+06; gpt2-large 2.5e+06; gpt2-xl 7.2e+06; Qwen2.5-7B-Instruct 1.6e+08; Llama-3.1-8B 3.0e+07; Llama-3.1-8B-Instruct 3.3e+07; Qwen3-8B-Base 2.9e+10; Qwen3-8B 6.4e+10; Mistral-Small-24B-Instruct-2501 3.6e+07; Olmo-3.1-32B-Instruct 4.8e+09; Qwen3-32B 2.2e+08
