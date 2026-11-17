@@ -1,4 +1,4 @@
-# Round 6 phase 2 T5: reduced-head refit (gamma, beta, W_U) on frozen bodies
+# Round 6 phase 2 T5: reduced-head refit (gamma, beta, W_U) on frozen bodies (bf16 body)
 
 | model | rev | arm | seed | complete | extended | loss orig. head | loss refit (step) | σ₁²/Σσ² start → end | σ₁/σ₂ end | |cos(ū, v₁)| end |
 |---|---|---|---|---|---|---|---|---|---|---|

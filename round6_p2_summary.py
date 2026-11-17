@@ -392,12 +392,16 @@ def last_eval(r):
     return int(k), r["evals"][k]
 
 
-def t5():
+def t5(base="results/round6/p2/refit"):
+    """base = results/round6/p2/refit (bf16 body, preregistered) or results/round6/p2/refit_fp32 (precision check)."""
+    fp32 = base.rstrip("/").endswith("_fp32")
     runs = {}
-    for f in glob.glob("results/round6/p2/refit/*/*/*.json"):
+    for f in glob.glob(f"{base}/*/*/*.json"):
+        if f.endswith("summary.json"):
+            continue
         r = json.load(open(f))
         runs[(r["model"], r["revision"], r["arm"], r["seed"])] = r
-    L = ["# Round 6 phase 2 T5: reduced-head refit (gamma, beta, W_U) on frozen bodies\n",
+    L = [f"# Round 6 phase 2 T5: reduced-head refit (gamma, beta, W_U) on frozen bodies ({'fp32 body, precision check' if fp32 else 'bf16 body'})\n",
          "| model | rev | arm | seed | complete | extended | loss orig. head | loss refit (step) | σ₁²/Σσ² start → end | σ₁/σ₂ end | |cos(ū, v₁)| end |",
          "|---|---|---|---|---|---|---|---|---|---|---|"]
     for key in sorted(runs, key=lambda k: (SIZES.index(k[0]), step_of(k[1]), k[2], k[3])):
@@ -438,9 +442,11 @@ def t5():
                  f"{'PASS' if out['P7-6']['pass'] else 'FAIL'} (all < 0.5)")
     else:
         L.append("\n- **P7-6**: not evaluable yet (runs incomplete)")
-    json.dump(out, open("results/round6/p2/refit/summary.json", "w"), indent=1)
-    open("results/round6/p2/refit/summary.md", "w").write("\n".join(L) + "\n")
+    json.dump(out, open(f"{base}/summary.json", "w"), indent=1)
+    open(f"{base}/summary.md", "w").write("\n".join(L) + "\n")
     print("\n".join(L))
+    if fp32:
+        return
     plt = plt_setup()
     fig, axs = plt.subplots(1, 2, figsize=(10, 3.8))
     cols = {"step50000": C1, "step80000": C1, "step110000": C3, "step143000": C2}
@@ -505,4 +511,4 @@ def t6():
 
 
 if __name__ == "__main__":
-    {"t1": t1, "t2": t2, "t3": t3, "t3check": t3check, "t4": t4, "t5": t5, "t6": t6}[sys.argv[1]]()
+    {"t1": t1, "t2": t2, "t3": t3, "t3check": t3check, "t4": t4, "t5": t5, "t6": t6}[sys.argv[1]](*sys.argv[2:])
