@@ -47,10 +47,12 @@ PolyPythias 的中间 checkpoint（尤其 160m）。
 | T3 | 完成 | GPU 71482；核查 71528 | 数值核查：SVD + 数值秩容差下 4/4 极差 < 1e-6，停止条件未触发；P7-3 按预注册不成立（极差 0.0196，只有 Qwen3-8B/-Base 的 V3，1e-12 阈值丢掉 1 个特征值）；P7-4 不成立（8/12） |
 | T4 | P7-5 完成；loss 重算中 | GPU 71510（array 0-1）；fp32 评估 loss CPU 71542（array 0-11） | P7-5 成立（8/8）；bf16 评估 loss 作废（坍缩 checkpoint 上偏高约 1.1 nat），fp32 重算 |
 | T5 | 完成 | GPU 71536（array 0-14%2）；smoke 71535（目录已删） | P7-6 成立（0.181 / 0.181 / 0.182）；D_refit/D_raw 70m 1.45、160m 1.24 → 身体侧 |
-| T6 | 运行中 GPU 71568（array 0-4%2） | `slurm/round6_p2_ft.sbatch`；CPU smoke 71539（目录已删） | |
+| T6 | 完成 | GPU 71568（array 0-4%2）； `slurm/round6_p2_ft.sbatch`；CPU smoke 71539（目录已删） | 探索性：R-pen 把 ‖ū‖² 压到 0.019 / 0.009；从 143000 出发 loss 4.574 对普通续训 3.6345 |
 
 问题记录（阶段二）：
 - 19:2x 发现最初的下载进程已全部退出（4 个停在下载中途），886/1142 行完成；用 `--shard k/6` 重启 6 个进程（已完成的行按 `.complete` 跳过）。
 - T4 第一次提交（71505）后改为每个 GPU 4 个进程（71507），因 B300 是 exclusive-process 模式失败（cudaErrorDevicesUnavailable），取消后回到每 GPU 1 个进程（71510）。
   取消前把 `round6_poly.py` 的 JSON 写入改为先写临时文件再改名；已有的 108 个 JSON 全部可解析。
 - 22:40 发现 T4 的评估 loss（bf16 模型 logit）在坍缩 checkpoint 上严重偏高，撤回 REPORT 中的 loss t50 结论，预注册追加修订后用 fp32 重算（CPU 71542）。
+- 00:15 精度问题：bf16 主体路径（阶段一 S4、T2、T5）把 70m 50000 → 143000 的 loss 上升从 0.049（fp32）放大到 0.167；160m 0.0875 对 0.1188。
+  预注册追加了精度核查（fp32 主体重做 T2 导出与 T5 seed 0），排在补充 1 – 2 之后。前几轮基于 bf16 主体的 loss 数值（dyn loss_base 等）可能同样受影响，未改动。
