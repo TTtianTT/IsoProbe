@@ -377,3 +377,28 @@
 | 只报告 | pythia-14m | 不预测（Godey et al. 把 14M 列为受影响的规模，Machina & Mercer 的范围按摘要不确定） |
 
 - 产出 `results/round6/p3/reanalysis/table.md`、`figs/r6p3_fig2_reanalysis.png`。
+
+## U4：半精度对坍缩模型 loss 的影响（追加于 00:12（2026-11-19），任何 U4 计算之前）
+
+1. **纯分析**（不需新计算）：阶段二 T4 的 1300 个 checkpoint（1142 个 PolyPythias + 158 个原 seed 加密窗口），loss 差 = 整模型 bf16（`results/round6/p2/poly_eval/`）− 整模型 fp32
+   （`poly_eval_fp32/`），同一评估集与批量；对 V1 ‖ū‖² 与 W_U 的 σ₁²/Σσ²（未折算，前 50277 行，与 T4 相同的来源）作散点。
+2. **机制检查**（GPU，`round6_p3_precision.py mech`）：pythia-70m step 143000，对照 step 50000（坍缩前）。第六轮评估集（50.7 万 token），与 T4 相同的批量前向，
+   log-softmax 一律在 fp32 中做。按（主体 = 嵌入 + 全部层，final norm，头）三段分别设精度，段间的激活转换为下一段的精度：
+   (fp32, fp32, fp32)、(bf16, bf16, bf16)、(fp32, bf16, bf16)"只有主体 fp32"、(bf16, fp32, bf16)"只有 final norm fp32"、(bf16, bf16, fp32)"只有头 fp32"、
+   (bf16, fp32, fp32)（≈ 阶段一 S4 路径）、(fp16, fp16, fp16)、(fp16, fp32, fp32)。只报告。
+3. **大模型核查**（GPU，`round6_p3_precision.py big`）：12 个模型都在单张 B300 上以 fp32 运行（32B 约 131 GB，放得下，所以按任务书不跳过）。
+   评估集 = `data/eval_loss_round6.jsonl` 按各模型 tokenizer 编码（add_special_tokens，每段截到 512），按顺序取段落直到预测 token ≥ 10 万。
+   每个精度下（整模型 bf16 / 整模型 fp32）：loss；去均值 Δloss = 用 h − m 代替 h（h 为 final norm 之后的表示，m 为 `data/samples.jsonl` 序列 0 – 499、max_len 256、
+   位置 1 … T − 1 上 h 的均值，与第三轮相同，在同一精度下估计），头在该精度下计算，log-softmax 在 fp32。
+   **规模分组**：任务书写"8B 及以下的 8 个"，按参数量实际有 9 个（GPT-2 ×4、Qwen2.5-7B 7.6B、Llama-3.1-8B ×2 8.03B、Qwen3-8B(-Base) ×2 8.19B），P8-9 用这 9 个；
+   Mistral-Small-24B、Olmo-3.1-32B、Qwen3-32B 只报告。
+4. **文献核对**：Godey et al. 2024 正文（arXiv 2404.07647v1 全文）没有出现 precision / float / fp16 / bf16 / half / dtype；论文没有给出代码链接，作者 GitHub 的 29 个仓库中没有该文的代码。
+   记为"未说明"，不据此对其结论作判断。
+
+| 编号 | 预测 | 判定 |
+|---|---|---|
+| P8-8 | 精度偏差由坍缩程度决定 | 1300 个 checkpoint 上 Spearman(bf16 − fp32 的 loss 差, V1 ‖ū‖²) > 0.8 |
+| P8-9 | 没有坍缩的大模型不受影响 | 上述 9 个模型 \|loss_bf16 − loss_fp32\| 都 < 0.01 nat |
+| 只报告 | 对 σ₁²/Σσ² 的 Spearman；去均值 Δloss 的 bf16 − fp32；三个大模型；机制检查各档 | — |
+
+- 产出 `results/round6/p3/precision/`、`figs/r6p3_fig3_precision.png`。
