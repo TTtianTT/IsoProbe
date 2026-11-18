@@ -81,7 +81,7 @@ def embed(args, slug, path, sents, d_needed=None):
             if mode == "eol":
                 out["eol"][i] = v[T - 1].float().cpu()
             else:
-                out["mean"][i] = v[1:T if T > 1 else 1].mean(0).float().cpu()
+                out["mean"][i] = (v[1:T] if T > 1 else v[0:1]).mean(0).float().cpu()  # T == 1: position 0, as sts_round4.py
                 out["last"][i] = v[T - 1].float().cpu()
         if (i + 1) % 10000 == 0:
             print(f"[{slug}] embedded {i + 1}/{len(sents)} {time.time() - t0:.0f}s", flush=True)
@@ -198,8 +198,19 @@ def main():
     if os.path.exists(efn):
         emb = torch.load(efn, weights_only=False)
         assert emb["sents"] == sents
+        bad = torch.isnan(emb["mean"]).any(1).nonzero()[:, 0].tolist()
+        if bad:  # caches written before the T == 1 fix (single-token sentences gave an empty mean): re-embed those rows
+            fix = embed(args, slug, path, [sents[i] for i in bad])
+            for j, i in enumerate(bad):
+                for p in POOLS:
+                    emb[p][i] = fix[p][j]
+            emb["fixed_rows"] = bad
+            torch.save(emb, efn + ".tmp")
+            os.replace(efn + ".tmp", efn)
+            print(f"[{slug}] re-embedded {len(bad)} single-token rows: {[sents[i] for i in bad]}", flush=True)
     else:
         emb = embed(args, slug, path, sents)
+        assert not torch.isnan(emb["mean"]).any()
         os.makedirs(args.emb_cache, exist_ok=True)
         torch.save(emb, efn + ".tmp")
         os.replace(efn + ".tmp", efn)
