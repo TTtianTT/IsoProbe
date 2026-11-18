@@ -147,6 +147,96 @@ def u0s4():
     print("\n".join(L))
 
 
+def u2():
+    """U2: P8-5, P8-6, last / eol comparisons, raw ranges, fit size, Ledoit-Wolf, spectrum; figure 1."""
+    D = "results/round6/p3/whiten_wide"
+    models = [os.path.basename(l.strip().rstrip("/")) for l in open("models.txt") if l.strip()]
+    R = {m: jl(f"{D}/{m}.json") for m in models}
+    missing = [m for m, r in R.items() if r is None]
+    R = {m: r for m, r in R.items() if r is not None}
+    DS = ["sts12", "sts13", "sts14", "sts15", "sts16", "stsb", "sickr"]
+    REPS = ["V1", "V3", "D_Amax", "D_Amin", "lin0", "lin1", "lin2"]
+    out = {"missing": missing, "per_model": {}}
+    n_cases = n_ok = 0
+    worst = []
+    for m, r in R.items():
+        pm = {}
+        for pool, p in r["pools"].items():
+            wr = {ds: p["range"][f"whiten/{ds}"] for ds in DS}
+            n_cases += len(DS)
+            n_ok += sum(v < 1e-6 for v in wr.values())
+            worst += [(v, m, pool, ds) for ds, v in wr.items() if v >= 1e-6]
+            mean7 = lambda rep, var: float(np.mean([p["scores"][f"{rep}/{var}/{ds}"] for ds in DS]))  # noqa: E731
+            pm[pool] = {"whiten_range_max": max(wr.values()), "w_minus_z": p["whiten_minus_zscore_mean7"],
+                        "V1_mean7": p["V1_mean7"],
+                        "raw_mean7_by_rep": {rep: mean7(rep, "raw") for rep in REPS},
+                        "zscore_mean7_by_rep": {rep: mean7(rep, "zscore") for rep in REPS},
+                        "whiten_mean7_by_rep": {rep: mean7(rep, "whiten") for rep in REPS},
+                        "raw_range_by_ds": {ds: p["range"][f"raw/{ds}"] for ds in DS},
+                        "zscore_range_lin_by_ds": {ds: p["range_lin"][f"zscore/{ds}"] for ds in DS},
+                        "lw_range_max": max(p["range"][f"whiten_lw/{ds}"] for ds in DS), "lw_rho_V1": p["lw_rho"]["V1"],
+                        "fit_size": {k: {"V1_mean7": mean7("V1", f"whiten_n{k}d"),
+                                         "range_max": max(p["range"][f"whiten_n{k}d/{ds}"] for ds in DS),
+                                         "n_dropped_V1": p["zca"][f"V1/whiten_n{k}d"]["n_dropped"]}
+                                     for k in (1, 2, 4, 8) if f"V1/whiten_n{k}d/sts12" in p["scores"]},
+                        "n_dropped_main": {rep: p["zca"][f"{rep}/whiten"]["n_dropped"] for rep in REPS},
+                        "cond_kept_main_max": max(p["zca"][f"{rep}/whiten"]["cond_kept"] for rep in REPS),
+                        "spectrum": p["spectrum"]}
+        out["per_model"][m] = pm
+    ci = {pool: sum(out["per_model"][m][pool]["w_minus_z"]["ci_lo"] > 0 for m in R) for pool in ("mean", "last", "eol")}
+    ci_neg = {pool: sum(out["per_model"][m][pool]["w_minus_z"]["ci_hi"] < 0 for m in R) for pool in ("mean", "last", "eol")}
+    out["P8_5"] = {"n_cases": n_cases, "n_below_1e-6": n_ok, "pass": bool(n_ok == n_cases and not missing), "failures": sorted(worst, reverse=True)[:20]}
+    out["P8_6"] = {"n_models_ci_above_0": ci["mean"], "pass": bool(ci["mean"] >= 9 and not missing)}
+    out["ci_above_0"], out["ci_below_0"] = ci, ci_neg
+    json.dump(out, open(f"{D}/summary.json", "w"), indent=1)
+    L = ["# U2 whitening on 7 STS sets x 3 poolings\n", f"models {len(R)} / 12; missing {missing}\n",
+         f"P8-5: whitening 7-rep range < 1e-6 in {n_ok} / {n_cases} (model x dataset x pool) -> {'pass' if out['P8_5']['pass'] else 'FAIL'}",
+         f"P8-6: mean pooling, mean over 7 sets, whiten - zscore CI above 0 in {ci['mean']} / {len(R)} models -> {'pass' if out['P8_6']['pass'] else 'FAIL'}",
+         f"CI above 0 / below 0: mean {ci['mean']} / {ci_neg['mean']}, last {ci['last']} / {ci_neg['last']}, eol {ci['eol']} / {ci_neg['eol']}\n",
+         "| model | pool | V1 raw | zscore | whiten | abtt10 | whiten LW | whiten - zscore [CI] | raw range (mean7 over reps) | zscore G_lin range max | LW range max | rankme/d | cond kept | top1 |",
+         "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for m in R:
+        for pool in ("mean", "last", "eol"):
+            q = out["per_model"][m][pool]
+            v = q["V1_mean7"]
+            w = q["w_minus_z"]
+            rr = q["raw_mean7_by_rep"]
+            L.append(f"| {m} | {pool} | {v['raw']:.1f} | {v['zscore']:.1f} | {v['whiten']:.1f} | {v['abtt10']:.1f} | {v['whiten_lw']:.1f} | "
+                     f"{w['delta']:+.2f} [{w['ci_lo']:+.2f}, {w['ci_hi']:+.2f}] | {min(rr.values()):.1f} – {max(rr.values()):.1f} | "
+                     f"{max(q['zscore_range_lin_by_ds'].values()):.2f} | {q['lw_range_max']:.2f} | {q['spectrum']['rankme_over_d']:.3f} | "
+                     f"{q['spectrum']['cond_kept']:.1e} | {q['spectrum']['top1_share']:.3f} |")
+    L += ["", "## fit size (mean pooling; V1 whiten mean over 7 sets / max 7-rep range / V1 dropped)", "| model | n = d | 2d | 4d | 8d | main (24000) |", "|---|---|---|---|---|---|"]
+    for m in R:
+        fsz = out["per_model"][m]["mean"]["fit_size"]
+        L.append(f"| {m} | " + " | ".join(f"{fsz[k]['V1_mean7']:.2f} / {fsz[k]['range_max']:.1e} / {fsz[k]['n_dropped_V1']}" if k in fsz else "–"
+                                          for k in (1, 2, 4, 8)) + f" | {out['per_model'][m]['mean']['V1_mean7']['whiten']:.2f} |")
+    open(f"{D}/summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L[:6]))
+    # figure 1: mean pooling, mean over 7 sets
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    ms = list(R)
+    fig, ax = plt.subplots(figsize=(11, 4.2))
+    for i, m in enumerate(ms):
+        q = out["per_model"][m]["mean"]
+        raw = list(q["raw_mean7_by_rep"].values())
+        zs = list(q["zscore_mean7_by_rep"].values())
+        wh = list(q["whiten_mean7_by_rep"].values())
+        ax.plot([i - 0.2, i - 0.2], [min(raw), max(raw)], color="#2a78d6", lw=6, solid_capstyle="round", label="raw (range over 7 gauges)" if i == 0 else None)
+        ax.plot([i, i], [min(zs), max(zs)], color="#eb6834", lw=6, solid_capstyle="round", label="zscore (range over 7 gauges)" if i == 0 else None)
+        ax.scatter([i + 0.2], [np.mean(wh)], color="#1baf7a", s=40, zorder=3, label="whitening (range < 1e-6)" if i == 0 else None)
+    ax.set_xticks(range(len(ms)))
+    ax.set_xticklabels([m.replace("-Instruct", "-I").replace("Mistral-Small-24B-I-2501", "Mistral-24B-I") for m in ms], rotation=35, ha="right", fontsize=8)
+    ax.set_ylabel("Spearman x100, mean over 7 STS sets")
+    ax.set_title("Mean pooling of V1: score under 7 output-preserving gauges")
+    ax.grid(axis="y", color="#e6e6e3", lw=0.8)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.legend(frameon=False, fontsize=8, loc="lower right")
+    fig.tight_layout()
+    fig.savefig("figs/r6p3_fig1_whiten_wide.png", dpi=150)
+
+
 def u1():
     D = "results/round6/p3/gauge_resid"
     rs = [json.load(open(f)) for f in sorted(glob.glob(f"{D}/*.json")) if not f.endswith("summary.json")]
@@ -173,4 +263,4 @@ def u1():
 
 
 if __name__ == "__main__":
-    {"u0": u0, "u0s4": u0s4, "u1": u1}[sys.argv[1]]()
+    {"u0": u0, "u0s4": u0s4, "u1": u1, "u2": u2}[sys.argv[1]]()
