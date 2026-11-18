@@ -1,6 +1,6 @@
 # 规范群：final norm 之后与残差流（第六轮阶段三 U1）
 
-写于 2026-11-19（阶段三 U1）。数值验证：`round6_gauge_resid.py`，结果 `results/round6/p3/gauge_resid/summary.md`（P8-3、P8-4）。
+写于 2026-11-18 23:59（阶段三 U1）。数值验证：`round6_gauge_resid.py`，结果 `results/round6/p3/gauge_resid/summary.md`（P8-3、P8-4）。
 相关文献见 `related_round6.md`"阶段三"第 4 条。
 
 ## 0. 设定与"规范变换"的含义
