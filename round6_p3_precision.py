@@ -16,7 +16,9 @@ import time
 import numpy as np
 import torch
 
-OUT = "results/round6/p3/precision"
+OUT = os.environ.get("ISO_P3_PREC_OUT", "results/round6/p3/precision")  # smoke tests: separate directory
+DEV = os.environ.get("ISO_DEV", "cuda:0")
+SMOKE = int(os.environ.get("ISO_P3_SMOKE", "0"))  # > 0: limit paragraphs / tokens (smoke only)
 DT = {"fp32": torch.float32, "bf16": torch.bfloat16, "fp16": torch.float16}
 
 
@@ -86,28 +88,30 @@ def batches(enc, bs, dev):
 def mech():
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from download_round4 import ckpt_dir
-    dev = "cuda:0"
+    from measure import final_norm_module
+    dev = DEV
     grid = [("fp32", "fp32", "fp32"), ("bf16", "bf16", "bf16"), ("fp32", "bf16", "bf16"), ("bf16", "fp32", "bf16"),
             ("bf16", "bf16", "fp32"), ("bf16", "fp32", "fp32"), ("fp16", "fp16", "fp16"), ("fp16", "fp32", "fp32")]
     fn = f"{OUT}/mech.json"
     res = json.load(open(fn)) if os.path.exists(fn) else {}
-    for rev in ("step143000", "step50000"):
+    for rev in (("step143000",) if SMOKE else ("step143000", "step50000")):
         path = ckpt_dir("EleutherAI/pythia-70m", rev)
         tok = AutoTokenizer.from_pretrained(path, local_files_only=True)
-        enc = eval_set(tok)
-        for body, norm, head in grid:
+        enc = eval_set(tok)[:SMOKE or None]
+        for body, norm, head in (grid[:3] if SMOKE else grid):
             key = f"{rev}/{body}-{norm}-{head}"
             if key in res:
                 continue
             t0 = time.time()
             m = AutoModelForCausalLM.from_pretrained(path, dtype=torch.float32, device_map=dev, local_files_only=True).eval()
-            gx = m.gpt_neox
-            gx.embed_in.to(DT[body])
-            gx.layers.to(DT[body])
-            gx.final_layer_norm.to(DT[norm])
-            m.embed_out.to(DT[head])
-            gx.final_layer_norm.register_forward_pre_hook(lambda mod, a, _d=DT[norm]: (a[0].to(_d),) + tuple(a[1:]))
-            m.embed_out.register_forward_pre_hook(lambda mod, a, _d=DT[head]: (a[0].to(_d),) + tuple(a[1:]))
+            gx = m.base_model
+            fnorm, hd = final_norm_module(m), m.get_output_embeddings()
+            m.to(DT[body])  # body = everything but the final norm and the head
+            fnorm.to(DT[norm])
+            hd.to(DT[head])
+            fnorm.register_forward_pre_hook(lambda mod, a, _d=DT[norm]: (a[0].to(_d),) + tuple(a[1:]))
+            hd.register_forward_pre_hook(lambda mod, a, _d=DT[head]: (a[0].to(_d),) + tuple(a[1:]))
+            assert gx.layers[0].mlp.dense_h_to_4h.weight.dtype == DT[body] and fnorm.weight.dtype == DT[norm] and hd.weight.dtype == DT[head]
             tot, n = 0.0, 0
             for ids, am in batches(enc, 32, dev):
                 lp = torch.log_softmax(m(input_ids=ids, attention_mask=am).logits.float(), -1)[:, :-1]
@@ -126,14 +130,14 @@ def mech():
 def big(model_arg, min_tokens=100_000, bs=8):
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from measure import load_samples, resolve_model
-    dev = "cuda:0"
+    dev = DEV
     path = resolve_model(model_arg)
     slug = os.path.basename(path.rstrip("/"))
     fn = f"{OUT}/big/{slug}.json"
     res = json.load(open(fn)) if os.path.exists(fn) else {"model": slug}
     tok = AutoTokenizer.from_pretrained(path, local_files_only=True)
-    enc = eval_set(tok, min_tokens=min_tokens)
-    est = load_samples("data/samples.jsonl", 0)[:500]
+    enc = eval_set(tok, min_tokens=SMOKE or min_tokens)
+    est = load_samples("data/samples.jsonl", 0)[:20 if SMOKE else 500]
     for prec in ("fp32", "bf16"):
         if prec in res:
             continue
