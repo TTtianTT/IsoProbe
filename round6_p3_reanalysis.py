@@ -134,7 +134,80 @@ def table():
            "pythia_step143000": py, "gpt2": gp, "rows": rows}
     os.makedirs(OUT, exist_ok=True)
     json.dump(res, open(f"{OUT}/table.json", "w"), indent=1, ensure_ascii=False)
+    f4 = lambda d: " / ".join(f"{d[k]:+.3f}" for k in ("V3", "V1", "Astar", "Astar_pi"))  # noqa: E731
+    L = ["# U3：用不变的量重新检查已有结论\n", "四个数依次为 原量（V3，第 4 行为 V1）/ V1 / A* / A*_π 上的差（bank 版 A）。判定规则见 `configs/round6_prereg.md` U3。\n",
+         f"P8-7：pythia-2.8b step143000 A* = {p87['Astar']:.3f}，A*_π = {p87['Astar_pi']:.3f} → {'成立' if res['P8_7']['pass'] else '不成立'}\n",
+         "| 行 | 结论 | 来源 | Δ（V3 / V1 / A* / A*_π） | A* 下 | A*_π 下 | 备注 |", "|---|---|---|---|---|---|---|"]
+    for r in rows:
+        if "delta" in r:
+            dl = f4(r["delta"])
+        elif r["row"] in (3, 5):
+            dl = "；".join(f"{s.get('model', s.get('pair'))}: {f4(s['delta'])}" for s in r["sub"])
+        elif r["row"] == 4:
+            dl = "；".join(f"{s['model']}: {f4(s['dip'])}" for s in r["sub"])
+        else:
+            dl = "无对应量"
+        v1, v2 = r.get("verdict_Astar", ""), r.get("verdict_Astar_pi", "")
+        if r["row"] == 5:
+            v1 = "；".join(f"{s['pair'].split(' ')[0]}: {s['verdict_Astar']}" for s in r["sub"]) + f"；方向不一致：{'是' if r['inconsistent_in']['Astar'] else '否'}"
+            v2 = "；".join(f"{s['pair'].split(' ')[0]}: {s['verdict_Astar_pi']}" for s in r["sub"]) + f"；方向不一致：{'是' if r['inconsistent_in']['Astar_pi'] else '否'}"
+        if r["row"] in (3, 4):
+            v1 += "（" + "，".join(f"{s['model'][7:]} {s['verdict_Astar']}" for s in r["sub"]) + "）"
+            v2 += "（" + "，".join(f"{s['model'][7:]} {s['verdict_Astar_pi']}" for s in r["sub"]) + "）"
+        L.append(f"| {r['row']} | {r['claim']} | {r['source']} | {dl} | {v1} | {v2} | {r['note']} |")
+    L += ["", "Pythia step143000（bank 版 A）：", "| 规模 | V3 | V1 | A* | A*_π |", "|---|---|---|---|---|"]
+    L += [f"| {m[7:]} | {v['V3']:.3f} | {v['V1']:.3f} | {v['Astar']:.3f} | {v['Astar_pi']:.3f} |" for m, v in py.items()]
+    open(f"{OUT}/table.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+    figure(res)
     return res
+
+
+def figure(res):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    C = {"V3": "#2a78d6", "V1": "#eb6834", "Astar": "#1baf7a", "Astar_pi": "#eda100"}
+    LBL = {"V3": "V3 (after final norm)", "V1": "V1 (before gain)", "Astar": "A* (uniform)", "Astar_pi": "A*_pi (frequency)"}
+    fig, axes = plt.subplots(1, 3, figsize=(13, 3.8))
+    groups = [("GPT-2", ["gpt2", "gpt2-medium", "gpt2-large", "gpt2-xl"], res["gpt2"], ["S", "M", "L", "XL"]),
+              ("Pythia step 143000", list(res["pythia_step143000"]), res["pythia_step143000"], ["14m", "70m", "160m", "410m", "1.4b", "2.8b"])]
+    for ax, (title, ms, data, xl) in zip(axes[:2], groups):
+        for k in C:
+            ax.plot(range(len(ms)), [data[m][k] for m in ms], marker="o", ms=5, lw=2, color=C[k], label=LBL[k])
+        ax.set_xticks(range(len(ms)))
+        ax.set_xticklabels(xl)
+        ax.set_title(title, fontsize=10)
+        ax.set_ylim(0, 0.8)
+    axes[0].set_ylabel("isotropy A (bank)")
+    rows = {r["row"]: r for r in res["rows"]}
+    labels, vals = [], {k: [] for k in C}
+    for s in rows[3]["sub"]:
+        labels.append(f"{s['model'][7:]} late")
+        for k in C:
+            vals[k].append(s["delta"][k])
+    for s in rows[4]["sub"]:
+        labels.append(f"{s['model'][7:]} mid dip")
+        for k in C:
+            vals[k].append(-s["dip"][k])
+    for s in rows[5]["sub"]:
+        labels.append({"Llama-3.1-8B": "Llama", "Qwen3-8B-Base": "Qwen3"}[s["pair"].split(" ")[0]] + " post")
+        for k in C:
+            vals[k].append(s["delta"][k])
+    ax = axes[2]
+    w = 0.2
+    for j, k in enumerate(C):
+        ax.bar([i + (j - 1.5) * w for i in range(len(labels))], vals[k], width=w * 0.9, color=C[k])
+    ax.axhline(0, color="#52514e", lw=0.8)
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, fontsize=8, rotation=20)
+    ax.set_title("changes (late / mid-training dip as negative / post-training)", fontsize=9)
+    for a in axes:
+        a.grid(axis="y", color="#e6e6e3", lw=0.8)
+        a.spines[["top", "right"]].set_visible(False)
+    axes[0].legend(frameon=False, fontsize=7)
+    fig.tight_layout()
+    fig.savefig("figs/r6p3_fig2_reanalysis.png", dpi=150)
 
 
 if __name__ == "__main__":
