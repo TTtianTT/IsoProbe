@@ -45,7 +45,7 @@ def measure(repo, rev, args):
 
     path = ckpt_dir(repo, rev)
     name = repo.split("/")[1]
-    dev = "cuda:0"
+    dev = os.environ.get("ISO_DEV", "cuda:0")  # round 6 phase 3 U3: CPU runs for pythia-14m / 2.8b
     t0 = time.time()
     tok = AutoTokenizer.from_pretrained(path, local_files_only=True)
     model = AutoModelForCausalLM.from_pretrained(path, dtype=MODEL_DTYPE, device_map=dev,
