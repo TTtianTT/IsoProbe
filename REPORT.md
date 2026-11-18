@@ -497,6 +497,8 @@ Slurm：
 
 ![r5 figC4](figs/r5_figC4_predictor.png)
 
+> **精度注记（第六轮阶段三 U0）**：本节的 loss 来自 bf16 模型。整模型 fp32 时结论不变（Q2-4 的 Spearman 0.9914），但 70m / 160m 的饱和幅度（终点 − 窗口最小）从 0.19 / 0.13 降到 0.07 / 0.09（阶段二 T4 的 fp32 评估），见"第六轮（阶段三）U0"。
+
 ### R5.3 第 3 项：早期瞬态是否就是 unigram 阶段
 
 ![r5 figC3](figs/r5_figC3_early.png)
