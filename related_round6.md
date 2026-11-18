@@ -99,3 +99,60 @@ Abdullah Karasan, *Representation Measurements Under Function-Preserving Reparam
 - 不变性本身是标准的线性代数（我们的推导，T3 用作 P7-3 的依据）：若拟合集协方差 Σ 满秩，对任意可逆 A，变换后协方差为 AΣAᵀ，
   ZCA 白化矩阵 (AΣAᵀ)^{−1/2} 满足 (AΣAᵀ)^{−1/2} A = O Σ^{−1/2}，其中 O 正交（极分解），所以白化后的向量只差一个正交变换，余弦不变。
   对均值的平移同样消去。前提是 Σ 满秩且条件数允许数值上稳定求逆。
+
+---
+
+## 阶段三（2026-11-18 23:30 起；web 检索 + 子代理读原文 HTML，引文 ≤ 30 词）
+
+### 1. Cain 2026（arXiv 2603.06774，v1，2026-03-06，单作者；HTML 全文读到，无附录；图只读了标题）
+
+逐条（§ 号为原文；"重合 / 不重合"相对本项目）：
+
+| 原文论点 | 出处 | 与本项目 |
+|---|---|---|
+| h′ = Dh、W′ = WD⁻¹ 不改变网络函数，"coordinates of representation space are defined only up to the action of GL(d)" | §1、§3 Prop. 1 | **重合**：阶段一规范群（final norm 之后）。不重合：无 norm、无残差流、无 final norm 折算 |
+| "Cosine similarity is not invariant under general gauge transformations"；诱导度量 G = DᵀD | §4 | **重合**（一般机制）。我们给出 LLM 上的幅度：对角 κ ≤ 10 即可让 66 对模型的 isotropy 区间全部相交（P6-2），raw STS 变化 10 – 35 分 |
+| 白化 D = Σ^{−1/2} 是"a gauge choice that fixes the metric structure"，可作 canonical metric | §4.1、§7.4 | **部分重合**：提出白化作为规范选择。不重合：没有陈述或检验白化余弦对 GL(d) 的不变性（§7.4 只报告了白化后协方差的特征值），没有 STS / 句向量，没有与 zscore 比较 |
+| Steck et al.、Ai 的余弦问题重新解释为规范效应；建议分析"quantities that remain invariant under gauge freedom" | §4.2、§8 | 重合（立场）；我们给出具体的不变量（白化余弦、h* / 因果内积几何的 isotropy） |
+| 叠加 / 特征夹角 FᵀF 依赖规范；CCA / CKA 近似规范不变 | §5 | 不涉及（本项目不讨论特征夹角或 CKA） |
+| 参数空间的拉回度量 JᵀJ；"Training induces a layer-dependent anisotropy" | §6 | 不重合：只有理论，无实验；我们的训练动态（Pythia 坍缩）是经验结果，且用不变量重查 |
+| 实验：Digits 两层 MLP、CIFAR-10 小 CNN；mean \|Δcos\| 0.13 / 0.05，Jaccard@10 0.72；κ = 20 时 top-1 近邻翻转 0.37 | §7.1 – 7.3 | 不重合：无语言模型 |
+| 局限："Larger transformer architectures, residual pathways, and normalization layers may introduce additional structure" | §8 | **这正是本项目 U1 的内容**：norm 把残差流的规范群从 GL(d) 缩到 O(d)（或更小） |
+
+结论：Cain 2026 给出一般机制和"白化 = 一个规范选择"的立场；没有 LLM、没有 norm / 残差流、没有跨模型 isotropy 排序、没有不变性陈述或检验、没有 STS。
+不单独触发停机条件（停机条件见下第 3 条）。
+
+### 2. 白化用于句向量：动机与是否提到不变性
+
+| 工作 | 动机（原文） | 是否陈述对线性变换不变 |
+|---|---|---|
+| Su et al. 2021（BERT-whitening，arXiv 2103.15316） | 提高各向同性；§3.1 "the coordinate formula of the inner product varies with the change of the coordinate basis"，余弦公式只在标准正交基下成立 | **未陈述**（无 "invarian"）。它把基依赖作为动机，用白化变到"标准正交基"；最接近"规范"表述，但没有不变性结论 |
+| Huang et al. 2021（WhiteningBERT，Findings EMNLP） | "address the problem of non-smooth anisotropic distribution" | 未陈述 |
+| Zhuo et al. 2023（WhitenedCSE，ACL） | uniformity / alignment | 未陈述（唯一的 "invariance" 指对扰动的增强不变性） |
+| Li et al. 2020（BERT-flow） | 标准高斯潜空间"satisfies isotropy" | 未陈述 |
+| **Svendsen, Jakobsen, Mager & Nassar 2026**（arXiv 2605.30596，v1，2026-05-28，DTU；*Improving Relative Representations with Learned Anchors and Whitened Inner Products*） | 跨编码器对齐（relative representations / 零样本 stitching）："embedding spaces may differ by rotation, anisotropic scaling, or translation" | **陈述了**：§3.3 "Exact affine invariance holds only for the non-shrunk form (Appendix B)"；§8 "an affine-invariant function"。白化内积 (x − μ)ᵀΣ⁻¹(a − μ)，加收缩时不严格不变。用于 CIFAR-100（ViT）、MARC（BERT 系列）、GPT-2 / TinyLlama / Gemma 的最后 token 检索。附录 B 的证明未能逐字读到（PDF 无法抽取文本，HTML 截断），以上依据 §3.3 与 §8 的逐字句 |
+
+### 3. 停机条件核对（任务书第 9 节）
+
+- "最后一层 isotropy 的跨模型排序不可识别"：检索未发现（Cain 2026 只有一般机制，无跨模型排序；Machina & Mercer、Godey 等不涉及规范）。
+- "白化余弦作为规范不变的句向量相似度"：**Svendsen et al. 2026 部分命中**。重合：明确陈述白化内积对可逆仿射变换不变，并用于文本编码器与小 LM 的隐藏状态。
+  不同：(i) 对象是不同编码器之间的仿射差异（跨模型对齐），不是同一模型的保持函数的重参数化；(ii) 用未归一化的内积，不是余弦；(iii) 无 STS / 句子相似度评估，
+  无与 zscore 的比较，无 final norm 折算或数值秩问题。判断：与本项目第 2 句"办法"的数学内容重合（不变性本身），新意只剩"把它用于 LLM 的规范问题 + STS 上的系统比较"。
+  **按规则停下，交用户决定**（STATUS 2026-11-19）。
+- 检索式（web，2026-11-18）：`"reparameterization" invariant cosine similarity whitening language model embeddings gauge invariant similarity`；
+  `whitening sentence embeddings invariant to linear transformation cosine similarity Mahalanobis invariance representation`；
+  `anisotropy isotropy language models not identifiable reparameterization final layer norm comparison across models`。未系统检索 ACL Anthology / OpenReview。
+
+### 4. 残差流的对称性（为 U1）
+
+- **SliceGPT**（Ashkboos et al., ICLR 2024，arXiv 2401.15024）§3.1 Theorem 1："Let Q be an orthogonal matrix of dimension D"；对 "RMSNorm-connected transformer network"，
+  W_embd Q、Qᵀ W_in、W_out Q、Qᵀ b_out、Qᵀ W_head 给出等价网络。§3.2："The computational invariance of the transformer network applies only to RMSNorm-connected networks"；
+  LayerNorm 先把均值相减矩阵 M = I − 11ᵀ/D 乘进写入矩阵、把增益吸收进读取矩阵，转换为 RMSNorm。**只证明充分性**（无"仅当"），未讨论子层输出后 norm，未讨论余弦 / 各向异性。
+  → U1 命题 2 的 RMSNorm 充分性部分是已有结果，引用；本项目补的是：必要性（在可被权重吸收的线性变换中恰为 O(d)）、LN 下沿 1 的不可观测分量与剪切（比 SliceGPT 的转换更大的群）、
+  子层输出后 norm（OLMo-2 / Olmo-3）只剩带符号置换，以及指标上的推论。
+- Elhage et al. 2021（*A Mathematical Framework*）："the residual stream doesn't have a 'privileged basis'; we could rotate it by rotating all the matrices interacting with it"；
+  同时声明 "We also ignore layer normalization"。Anthropic 2023（*Privileged Bases in the Transformer Residual Stream*）："every operation that reads from or writes to the residual stream does so via an arbitrary full-rank linear transformation"（忽略 norm 时是 GL(d) 的说法）。
+- Gupta et al. 2024（arXiv 2409.12951）：LN 的输出与全 1 向量正交，且 LN 模型的残差流在 LN 之前就几乎与 1 正交（"there is nothing to remove"）；经验观察，无对称性陈述。
+- arXiv 2606.19491（*Algebraic Dead Directions in LayerNorm Transformers*）："LayerNorm's mean-subtraction projector forces a deterministic kernel direction at the output of every LN block"；讨论的是参数空间 Fisher 退化方向，不是残差流的规范群。
+- 子层输出后 norm：web 检索摘要提到 arXiv 2610.12728（*A Categorical Atlas of Parameter-Efficient Fine-Tuning*）指出子层输出后的对角增益与一般旋转不交换；**原文未读到**（HTML 超过抓取上限），只记为待核对。
+- TransformerLens 的 fold_ln / center_writing_weights 文档未能访问。

@@ -1,0 +1,151 @@
+{
+ "phase": "round 6 phase 3",
+ "since": "2026-11-18T23:20",
+ "gpu_hours": 0.666,
+ "cpu_core_hours": 28.97,
+ "cpu_core_hours_of_gpu_jobs": 5.32,
+ "limit_gpu_hours": 60.0,
+ "limit_cpu_core_hours": 3000.0,
+ "frac_gpu": 0.0111,
+ "frac_cpu": 0.0097,
+ "stop_at_80pct": false,
+ "n_jobs": 17,
+ "jobs": [
+  {
+   "job": "71743",
+   "name": "iso-r6p3-smoke",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 92,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71744",
+   "name": "iso-r6p3-smoke",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 60,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_0",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 222,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_1",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 245,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_2",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 217,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_3",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 245,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_4",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 224,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_5",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 229,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_6",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 199,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_7",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 225,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_8",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 207,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71745_9",
+   "name": "iso-r6p3-u0",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 231,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71750",
+   "name": "iso-r6p3-smoke",
+   "gpus": 0,
+   "cpus": 16,
+   "elapsed_s": 35,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71751",
+   "name": "iso-r6p3-smoke",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 87,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71752_0",
+   "name": "iso-r6p3-u1",
+   "gpus": 0,
+   "cpus": 48,
+   "elapsed_s": 249,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71752_1",
+   "name": "iso-r6p3-u1",
+   "gpus": 0,
+   "cpus": 48,
+   "elapsed_s": 1136,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71752_2",
+   "name": "iso-r6p3-u1",
+   "gpus": 0,
+   "cpus": 48,
+   "elapsed_s": 718,
+   "state": "COMPLETED"
+  }
+ ]
+}

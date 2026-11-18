@@ -81,3 +81,29 @@ CPU 约 2100 核小时，其中 fp32 评估 loss（71542 + 71623）约 1910。�
 - 补充 3 中 eigh 1e-12 路径在 SICK-R 上另有 GPT-2 large / xl 极差 6.3e-6 / 1.2e-6（> 1e-6）；秩容差路径全部为 0。
 - commit 中的一处预注册时间戳写错（01:25 → 01:05），已在随后的 commit 中更正。
 - 所有 push 均一次成功。
+
+---
+
+# 阶段三进度（2026-11-18 23:20 起）
+
+更新于 2026-11-19 00:50（Asia/Singapore）。**按任务书第 9 节停下**：文献核对命中停机条件"白化余弦作为规范不变的句向量相似度"（部分命中，见下），等待用户决定。
+队列为空；停下前已在跑的两个作业（U0 dyn GPU array、U1 CPU array）跑完并提交，没有提交新作业（U0 的 S4 部分未提交）。
+
+| 任务 | 状态 | 作业号 | 判定 / 备注 |
+|---|---|---|---|
+| U0（dyn / logit 部分） | 完成 | GPU 71745（array 0-9%2）；smoke srun 71743、71744（独立目录，已删） | **P8-1 成立**：fp32 Spearman 0.9914（同一批点 bf16 0.9919，340 点）；Δloss、可加占比无符号变化，"子集 Δloss > 全部"无变化；corr(δ_S, δ_R) 3 处变号（2 处 \|corr\| ≤ 0.005，410m step 128000 top8 −0.107 → +0.057，因 fp32 下前 8 维集合变了一维） |
+| U0（S4 部分，P8-2） | **未做** | — | 已有代码与冒烟结果（70m step 143000 fp32：固定分量 +0.4943、去均值 +0.9490、截断+偏置 +0.3025、前 0.1% token 份额 0.999；冒烟目录已删，不作为结果）。续跑：`sbatch --array=0-10%2 slurm/round6_p3_audit.sbatch s4` |
+| U1（数值验证） | 完成 | CPU 71752（array 0-2，4RTXq）；smoke 71749、71751（独立目录，已删） | **P8-3、P8-4 成立**（8 个群内情形，logits 最大相对误差 ≤ 3.7e-12，各层指标差 ≤ 6.3e-12）；对照：gpt2 非保 1 的 Haar 0.69、OLMo-2 Haar 1.52。`docs/theory_round6.md` 未写 |
+| U2 – U4、claims.md | 未开始 | — | — |
+| 文献（第 8 节） | 完成 1 – 3 | — | 见 `related_round6.md`"阶段三" |
+
+**停机原因（需要用户决定）**：Svendsen, Jakobsen, Mager & Nassar 2026（arXiv 2605.30596，*Improving Relative Representations with Learned Anchors and Whitened Inner Products*）
+逐字写有 "Exact affine invariance holds only for the non-shrunk form (Appendix B)"（§3.3）与 "an affine-invariant function"（§8），对象是白化内积 (x − μ)ᵀΣ⁻¹(a − μ)，
+用在 BERT 系列文本编码器与 GPT-2 / TinyLlama / Gemma 的隐藏状态上。与本项目的差别：它针对不同编码器之间的仿射差异（跨模型对齐），不是同一模型的保持函数的重参数化；
+用内积而非余弦；没有 STS、没有与 zscore 比较、没有数值秩问题。附录 B 的证明未能逐字读到（本机无 PDF 文本抽取工具，HTML 截断）。
+若继续，建议：引用它作为"白化相似度的仿射不变性"的已有陈述，把第 2 句"办法"的新意限定为"用于 LLM 的规范问题（final norm 折算、跨模型排序）与 STS 上的系统比较"，然后按原顺序做 U0 的 S4 部分与 U2 – U4。
+
+**另外两条文献结果（不触发停机）**：SliceGPT（Ashkboos et al. 2024，Theorem 1）已证明 RMSNorm 模型对正交 Q 的不变性（充分性）；U1 命题 2 的 RMSNorm 充分性部分改为引用。
+本项目补的是必要性、LN 下沿 1 的剪切自由度（数值上 gpt2 剪切后输出不变、n(x) 指标不变、未归一化 x 的 A 变化 0.286），以及 OLMo-2 型子层输出后 norm 只剩带符号置换（Haar Q 破坏输出）。
+
+**资源（阶段三，sacct，`results/round6/budget.json`）**：GPU 0.67 / 60 小时，CPU 29.0 / 3000 核小时（17 个作业，均 ≤ 2 张卡）。
