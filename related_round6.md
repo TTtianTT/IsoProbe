@@ -138,7 +138,7 @@ Abdullah Karasan, *Representation Measurements Under Function-Preserving Reparam
 - "白化余弦作为规范不变的句向量相似度"：**Svendsen et al. 2026 部分命中**。重合：明确陈述白化内积对可逆仿射变换不变，并用于文本编码器与小 LM 的隐藏状态。
   不同：(i) 对象是不同编码器之间的仿射差异（跨模型对齐），不是同一模型的保持函数的重参数化；(ii) 用未归一化的内积，不是余弦；(iii) 无 STS / 句子相似度评估，
   无与 zscore 的比较，无 final norm 折算或数值秩问题。判断：与本项目第 2 句"办法"的数学内容重合（不变性本身），新意只剩"把它用于 LLM 的规范问题 + STS 上的系统比较"。
-  **按规则停下，交用户决定**（STATUS 2026-11-19）。
+  **按规则停下，交用户决定**（STATUS 2026-11-18 23:54）。23:56 用户决定继续：引用 Svendsen et al. 2026 作为白化相似度仿射不变性的已有陈述，第 2 句"办法"的新意限定为"用于 LLM 的规范问题（final norm 折算、跨模型排序）与 STS 上的系统比较"。
 - 检索式（web，2026-11-18）：`"reparameterization" invariant cosine similarity whitening language model embeddings gauge invariant similarity`；
   `whitening sentence embeddings invariant to linear transformation cosine similarity Mahalanobis invariance representation`；
   `anisotropy isotropy language models not identifiable reparameterization final layer norm comparison across models`。未系统检索 ACL Anthology / OpenReview。
