@@ -1113,7 +1113,7 @@ GPU array 71745（85 个 Pythia checkpoint，整模型 fp32）。汇总 `results
 
 ### U1：残差流规范群的数值验证（P8-3、P8-4）
 
-CPU array 71752（fp64，无 GPU）。汇总 `results/round6/p3/gauge_resid/summary.{md,json}`。理论文档 `docs/theory_round6.md` 尚未写。
+CPU array 71752（fp64，无 GPU）。汇总 `results/round6/p3/gauge_resid/summary.{md,json}`。理论：`docs/theory_round6.md`（命题 1 – 3 的证明；RMSNorm 恰为 O(d)，LayerNorm 为 G_LN，子层输出后 norm 为带符号置换）。
 
 | 情形 | 结构 | 变换 | logits 最大相对误差 | 各层 A / B_c / RankMe 最大差 |
 |---|---|---|---|---|
