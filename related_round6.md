@@ -156,3 +156,21 @@ Abdullah Karasan, *Representation Measurements Under Function-Preserving Reparam
 - arXiv 2606.19491（*Algebraic Dead Directions in LayerNorm Transformers*）："LayerNorm's mean-subtraction projector forces a deterministic kernel direction at the output of every LN block"；讨论的是参数空间 Fisher 退化方向，不是残差流的规范群。
 - 子层输出后 norm：web 检索摘要提到 arXiv 2610.12728（*A Categorical Atlas of Parameter-Efficient Fine-Tuning*）指出子层输出后的对角增益与一般旋转不交换；**原文未读到**（HTML 超过抓取上限），只记为待核对。
 - TransformerLens 的 fold_ln / center_writing_weights 文档未能访问。
+
+### 5. U3 各行的原文措辞（00:13 – 00:16 读取；子代理读 HTML，引文 ≤ 30 词）
+
+- **Su & Collier 2022**（arXiv 2210.14140v3，TMLR 2023）§3.1："only the small (i.e. 117M) and medium (i.e. 345M) size GPT-2 display a clear anisotropy (i.e. isotropy(θ)≤0.25)"。
+  度量（§2.1）：序列内两两余弦的平均（self-similarity），isotropy = 1 − 语料平均；与本项目的 A 定义相同。**正文没有说明用哪一层、是否在 final LayerNorm 之后**（附录 C 的措辞只见模型摘要，未核对）。
+- **Machina & Mercer 2024**（NAACL）：**只读到摘要**，"the large Pythia models optimize their final Layer Norm for isotropy"；哪些规模、哪一层、何种度量未能核对（PDF 无法抽取文本）。表中注"按摘要"。
+- **Godey et al. 2024**（arXiv 2404.07647v1）§4.1："anisotropy increases abruptly around the saturation point during training"；"only models containing 160M or fewer parameters seem affected by last-layer anisotropy"；
+  图 3 为 14M – 410M 的"last-layer anisotropy"。未说明 final LayerNorm 前后。
+- **Timkey & van Schijndel 2021**（arXiv 2109.04404）§3.1.3："a small subset of rogue dimensions dominate the cosine similarity computation, especially in the more anisotropic final layers"。
+  rogue 维度按其对期望余弦的贡献 CC_i 定义；模型为 d = 768、12 层的 BERT、RoBERTa、GPT-2、XLNet。
+- **Ethayarajh 2019** §1："The anisotropy in GPT-2's last layer is so extreme that two random words will on average have almost perfect cosine similarity!"（12 层 GPT-2，即 small）。
+
+### 6. U4：Godey et al. 2024 评估时的数值精度
+
+- 论文全文（arXiv 2404.07647v1，含附录 A、B.1）没有出现 precision / float / fp16 / bf16 / half / dtype / fp32；硬件只写了"4 V100 GPUs for the Pythia models"（附录 B.1）；
+  §3 只写"We measure the cross-entropy of Pythia checkpoints on 50k tokens randomly sampled from their pretraining dataset"。
+- 论文没有代码链接；作者 GitHub（NathanGodey）列出的 29 个仓库中没有名称或描述与饱和 / softmax bottleneck / Pythia 相关的仓库（最接近的 GradientBottleneck 是另一篇 2026 年论文的代码，未读）。
+- 记为**"未说明"**。不据此对其结论作判断（V100 不支持 bf16 计算这一点也不能推出他们用了哪种精度）。
