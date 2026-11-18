@@ -134,8 +134,8 @@ def ablate(model_name, rev, args):
     X, Y, FL, chk = C.eval_cache(args.max_tokens)
     Wf = C.W * C.gamma
     bf = C.W @ C.beta if C.beta is not None else None
-    bank_fn = next(f for f in (f"cache/round4_banks/{model_name}/{rev}.pt", f"cache/round5_banks/{model_name}/{rev}.pt")
-                   if os.path.exists(f))
+    bank_dirs = os.environ.get("ISO_BANK_DIRS", "cache/round4_banks,cache/round5_banks").split(",")  # phase 3 U0: fp32 banks
+    bank_fn = next(f for f in (f"{bd}/{model_name}/{rev}.pt" for bd in bank_dirs) if os.path.exists(f))
     b = torch.load(bank_fn, weights_only=False)
     V1b = normalize(b["x"].to(DEV).float(), b["norm_type"], b["eps"])
     assert (b["gamma"].to(DEV) - C.gamma).abs().max().item() == 0

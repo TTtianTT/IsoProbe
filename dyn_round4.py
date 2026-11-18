@@ -15,6 +15,9 @@ import time
 import numpy as np
 import torch
 
+# model precision: bf16 (default, rounds 4-5) or fp32 (round 6 phase 3 U0 audit, ISO_MODEL_DTYPE=fp32)
+MODEL_DTYPE = {"bf16": torch.bfloat16, "fp32": torch.float32}[os.environ.get("ISO_MODEL_DTYPE", "bf16")]
+
 from download_round4 import ckpt_dir
 from extract_round3 import KS, norm_params
 from measure import final_norm_module, load_samples, select_layers, self_similarity
@@ -45,7 +48,7 @@ def measure(repo, rev, args):
     dev = "cuda:0"
     t0 = time.time()
     tok = AutoTokenizer.from_pretrained(path, local_files_only=True)
-    model = AutoModelForCausalLM.from_pretrained(path, dtype=torch.bfloat16, device_map=dev,
+    model = AutoModelForCausalLM.from_pretrained(path, dtype=MODEL_DTYPE, device_map=dev,
                                                  local_files_only=True).eval()
     norm = final_norm_module(model)
     gamma, beta, eps, ntype = norm_params(norm)
