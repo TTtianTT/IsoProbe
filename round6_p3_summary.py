@@ -107,6 +107,46 @@ def u0():
     print("\n".join(L[:12]))
 
 
+def u0s4():
+    """S4 part of U0: ablation and per-token shares, original (bf16 body) vs fp32; P8-2."""
+    rows = [l.split("\t")[:2] for l in open("configs/round6_causal.tsv").read().splitlines() if l.strip()]
+    ex = jl("results/round6/causal/explore_tokens.json") or {}
+    tab = []
+    for m, rev in rows:
+        o, f = jl(f"results/round6/causal/ablate/{m}/{rev}.json"), jl(f"{A}/s4/{m}/{rev}.json")
+        t = jl(f"{A}/s4_tokens/{m}/{rev}.json")
+        e = {"model": m, "rev": rev}
+        for tag, r in (("orig", o), ("fp32", f)):
+            dl = r["dloss"]
+            e[tag] = {"base": r["loss"]["base"], "mean": dl["ubar/mean"], "fix": dl["ubar/fix"], "ratio": dl["ubar/fix"] / dl["ubar/mean"],
+                      "trunc_bias": dl["trunc+bias"], "control": dl["control_bias"], "trunc_bias_minus_control": r["trunc_bias_minus_control"],
+                      "trunc_b0": dl["trunc+b0"], "s1sq": r["svd"]["s1sq_over_sum"]}
+        e["fp32"]["share_top0.1pct_fix"] = t["fix"]["share_top0.1pct"]
+        e["fp32"]["share_top0.1pct_trunc"] = t["trunc_meancomp"]["share_top0.1pct"]
+        k = f"{m}/{rev}"
+        if k in ex:
+            e["orig"]["share_top0.1pct_fix"] = ex[k]["fix"]["share_top0.1pct"]
+            e["orig"]["share_top0.1pct_trunc"] = ex[k]["trunc_meancomp"]["share_top0.1pct"]
+        tab.append(e)
+    get = lambda m, r: next(e for e in tab if e["model"] == m and e["rev"] == r)  # noqa: E731
+    p82 = {m: get(m, "step143000")["fp32"]["share_top0.1pct_fix"] for m in ("pythia-70m", "pythia-160m")}
+    res = {"P8_2": {"shares": p82, "pass": bool(all(v >= 0.8 for v in p82.values()))}, "table": tab}
+    json.dump(res, open(f"{A}/summary_s4.json", "w"), indent=1)
+    L = ["# U0 fp32 audit: phase-1 S4 (orig = bf16 body + fp32 head; fp32 = whole model fp32)\n",
+         f"P8-2: top-0.1% share of the fix-ubar cost, fp32: 70m {p82['pythia-70m']:.4f}, 160m {p82['pythia-160m']:.4f} -> "
+         f"{'pass' if res['P8_2']['pass'] else 'FAIL'}\n",
+         "| model | step | base loss | (1) mean | (2) fix | (2)/(1) | trunc+b0 | trunc+bias | control | trunc+bias - control | top-0.1% share (2) |",
+         "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for e in tab:
+        o, f = e["orig"], e["fp32"]
+        sh = f"{o['share_top0.1pct_fix']:.3f} / {f['share_top0.1pct_fix']:.3f}" if "share_top0.1pct_fix" in o else f"– / {f['share_top0.1pct_fix']:.3f}"
+        L.append(f"| {e['model'][7:]} | {e['rev'][4:]} | {o['base']:.4f} / {f['base']:.4f} | "
+                 + " | ".join(f"{o[k]:+.3f} / {f[k]:+.3f}" for k in ("mean", "fix", "ratio", "trunc_b0", "trunc_bias", "control", "trunc_bias_minus_control"))
+                 + f" | {sh} |")
+    open(f"{A}/summary_s4.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+
+
 def u1():
     D = "results/round6/p3/gauge_resid"
     rs = [json.load(open(f)) for f in sorted(glob.glob(f"{D}/*.json")) if not f.endswith("summary.json")]
@@ -133,4 +173,4 @@ def u1():
 
 
 if __name__ == "__main__":
-    {"u0": u0, "u1": u1}[sys.argv[1]]()
+    {"u0": u0, "u0s4": u0s4, "u1": u1}[sys.argv[1]]()
