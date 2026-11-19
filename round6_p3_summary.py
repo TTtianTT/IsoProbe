@@ -237,6 +237,73 @@ def u2():
     fig.savefig("figs/r6p3_fig1_whiten_wide.png", dpi=150)
 
 
+def u4():
+    """U4: P8-8 (scatter), mechanism grid, P8-9 (12 models; 9 <= 8.2B); figure 3."""
+    D = "results/round6/p3/precision"
+    sc, mech = jl(f"{D}/scatter.json"), jl(f"{D}/mech.json") or {}
+    models = [os.path.basename(l.strip().rstrip("/")) for l in open("models.txt") if l.strip()]
+    small = models[:9]
+    big = {m: jl(f"{D}/big/{m}.json") for m in models}
+    rows = []
+    for m in models:
+        r = big[m]
+        if r is None or "fp32" not in r or "bf16" not in r:
+            rows.append((m, None))
+            continue
+        rows.append((m, {"loss_fp32": r["fp32"]["loss"], "loss_bf16": r["bf16"]["loss"], "diff": r["bf16"]["loss"] - r["fp32"]["loss"],
+                         "dl_fp32": r["fp32"]["dloss_demeaned"], "dl_bf16": r["bf16"]["dloss_demeaned"],
+                         "dl_diff": r["bf16"]["dloss_demeaned"] - r["fp32"]["dloss_demeaned"], "n": r["fp32"]["n_tokens"]}))
+    R = dict(rows)
+    p89 = [abs(R[m]["diff"]) < 0.01 for m in small if R[m] is not None]
+    res = {"P8_8": sc["P8_8"], "rho_s1": sc["rho_s1"], "P8_9": {"n": len(p89), "n_pass": sum(p89),
+           "pass": bool(len(p89) == 9 and all(p89))}, "big": R, "mech": mech}
+    json.dump(res, open(f"{D}/summary.json", "w"), indent=1)
+    L = ["# U4 precision\n", f"P8-8: Spearman(bf16 - fp32 loss, V1 ubar^2) = {sc['P8_8']['rho_ubar']:.4f} over {sc['n']} checkpoints -> "
+         f"{'pass' if sc['P8_8']['pass'] else 'FAIL'}; vs s1^2/sum {sc['rho_s1']:.4f}",
+         f"P8-9: |bf16 - fp32| < 0.01 in {sum(p89)} / {len(p89)} of the 9 models <= 8.2B -> {'pass' if res['P8_9']['pass'] else 'FAIL'}\n",
+         "| model | loss fp32 | loss bf16 | bf16 - fp32 | demeaned dloss fp32 | bf16 | bf16 - fp32 | tokens |", "|---|---|---|---|---|---|---|---|"]
+    for m, v in rows:
+        L.append(f"| {m} | " + (" | ".join([f"{v['loss_fp32']:.4f}", f"{v['loss_bf16']:.4f}", f"{v['diff']:+.4f}", f"{v['dl_fp32']:+.4f}",
+                                            f"{v['dl_bf16']:+.4f}", f"{v['dl_diff']:+.4f}", str(v['n'])]) if v else "missing | | | | | |") + " |")
+    L += ["", "## mechanism (pythia-70m; body / final norm / head)", "| setting | step 143000 | step 50000 |", "|---|---|---|"]
+    keys = sorted({k.split("/", 1)[1] for k in mech}, key=lambda k: list(dict.fromkeys(
+        ["fp32-fp32-fp32", "bf16-bf16-bf16", "fp32-bf16-bf16", "bf16-fp32-bf16", "bf16-bf16-fp32", "bf16-fp32-fp32", "fp16-fp16-fp16", "fp16-fp32-fp32"])).index(k))
+    for k in keys:
+        L.append(f"| {k} | " + " | ".join(f"{mech[f'{rv}/{k}']['loss']:.4f}" if f"{rv}/{k}" in mech else "–" for rv in ("step143000", "step50000")) + " |")
+    open(f"{D}/summary.md", "w").write("\n".join(L) + "\n")
+    print("\n".join(L))
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(1, 3, figsize=(13, 3.8))
+    pts = sc["points"]
+    for sz, c in (("70m", "#2a78d6"), ("160m", "#eb6834")):
+        q = [p for p in pts if p["model"].startswith(f"pythia-{sz}")]
+        for ax, key in zip(axes[:2], ("ubar", "s1")):
+            ax.scatter([p[key] for p in q], [p["diff"] for p in q], s=8, color=c, alpha=0.6, linewidths=0, label=f"pythia-{sz} (10 seeds)")
+    axes[0].set_xlabel("V1 ||ubar||^2")
+    axes[1].set_xlabel("W_U sigma_1^2 / sum sigma^2")
+    axes[0].set_ylabel("eval loss: bf16 - fp32 (nat)")
+    axes[0].set_title(f"Spearman {sc['P8_8']['rho_ubar']:.3f} (n = {sc['n']})", fontsize=10)
+    axes[1].set_title(f"Spearman {sc['rho_s1']:.3f}", fontsize=10)
+    axes[0].legend(frameon=False, fontsize=8)
+    ax = axes[2]
+    lab = [k.replace("-", "/") for k in keys]
+    for j, (rv, c) in enumerate((("step143000", "#2a78d6"), ("step50000", "#1baf7a"))):
+        ax.barh([i + (j - 0.5) * 0.4 for i in range(len(keys))], [mech.get(f"{rv}/{k}", {}).get("loss", np.nan) for k in keys],
+                height=0.36, color=c, label=f"70m {rv}")
+    ax.set_yticks(range(len(keys)))
+    ax.set_yticklabels(lab, fontsize=8)
+    ax.invert_yaxis()
+    ax.set_xlabel("eval loss (nat); body / final norm / head")
+    ax.legend(frameon=False, fontsize=8)
+    for a in axes:
+        a.grid(color="#e6e6e3", lw=0.8)
+        a.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+    fig.savefig("figs/r6p3_fig3_precision.png", dpi=150)
+
+
 def u1():
     D = "results/round6/p3/gauge_resid"
     rs = [json.load(open(f)) for f in sorted(glob.glob(f"{D}/*.json")) if not f.endswith("summary.json")]
@@ -263,4 +330,4 @@ def u1():
 
 
 if __name__ == "__main__":
-    {"u0": u0, "u0s4": u0s4, "u1": u1, "u2": u2}[sys.argv[1]]()
+    {"u0": u0, "u0s4": u0s4, "u1": u1, "u2": u2, "u4": u4}[sys.argv[1]]()
