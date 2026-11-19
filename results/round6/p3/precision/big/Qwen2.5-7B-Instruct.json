@@ -1,0 +1,23 @@
+{
+ "model": "Qwen2.5-7B-Instruct",
+ "fp32": {
+  "loss": 2.4718638627236658,
+  "loss_demeaned": 4.577846300500527,
+  "dloss_demeaned": 2.105982437776861,
+  "n_tokens": 100132,
+  "n_paragraphs": 670,
+  "m_norm": 178.1099395751953,
+  "elapsed_s": 77.54143261909485
+ },
+ "bf16": {
+  "loss": 2.472605249815361,
+  "loss_demeaned": 4.572243898308139,
+  "dloss_demeaned": 2.0996386484927787,
+  "n_tokens": 100132,
+  "n_paragraphs": 670,
+  "m_norm": 178.1456298828125,
+  "elapsed_s": 22.53574800491333
+ },
+ "loss_bf16_minus_fp32": 0.0007413870916952447,
+ "dloss_bf16_minus_fp32": -0.006343789284082302
+}

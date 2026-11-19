@@ -1,0 +1,125 @@
+{
+ "model": "Mistral-Small-24B-Instruct-2501",
+ "identical_pairs": {
+  "sts12": 79,
+  "sts13": 2,
+  "sts14": 1,
+  "sts15": 8,
+  "sts16": 3,
+  "stsb": 0,
+  "sickr": 0
+ },
+ "pools": {
+  "mean": {
+   "sts12": {
+    "max_abs_cos_diff": 1.7486012637846216e-14,
+    "score_range": 0.004816980770016244,
+    "score_range_rounded": 0.0
+   },
+   "sts13": {
+    "max_abs_cos_diff": 1.6486811915683575e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   },
+   "sts14": {
+    "max_abs_cos_diff": 1.5210055437364645e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   },
+   "sts15": {
+    "max_abs_cos_diff": 1.587618925213974e-14,
+    "score_range": 2.139360333330842e-08,
+    "score_range_rounded": 0.0
+   },
+   "sts16": {
+    "max_abs_cos_diff": 1.659783421814609e-14,
+    "score_range": 1.1350125816989021e-07,
+    "score_range_rounded": 0.0
+   },
+   "stsb": {
+    "max_abs_cos_diff": 1.5487611193520934e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   },
+   "sickr": {
+    "max_abs_cos_diff": 2.015054789694659e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   }
+  },
+  "last": {
+   "sts12": {
+    "max_abs_cos_diff": 1.8596235662471372e-14,
+    "score_range": 0.0039125107000295145,
+    "score_range_rounded": 0.0
+   },
+   "sts13": {
+    "max_abs_cos_diff": 2.1399548799649892e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   },
+   "sts14": {
+    "max_abs_cos_diff": 1.870031907102998e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   },
+   "sts15": {
+    "max_abs_cos_diff": 1.7819079545233762e-14,
+    "score_range": 3.1322983318204933e-08,
+    "score_range_rounded": 0.0
+   },
+   "sts16": {
+    "max_abs_cos_diff": 1.4904744105592727e-14,
+    "score_range": 1.0836738084663011e-07,
+    "score_range_rounded": 0.0
+   },
+   "stsb": {
+    "max_abs_cos_diff": 1.7208456881689926e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   },
+   "sickr": {
+    "max_abs_cos_diff": 1.8457457784393227e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   }
+  },
+  "eol": {
+   "sts12": {
+    "max_abs_cos_diff": 2.8144153674247718e-14,
+    "score_range": 0.00472365973358535,
+    "score_range_rounded": 0.0
+   },
+   "sts13": {
+    "max_abs_cos_diff": 2.9878877150224525e-14,
+    "score_range": 7.06291984897689e-08,
+    "score_range_rounded": 0.0
+   },
+   "sts14": {
+    "max_abs_cos_diff": 3.066991105526995e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   },
+   "sts15": {
+    "max_abs_cos_diff": 2.874089854998374e-14,
+    "score_range": 3.490895039703901e-08,
+    "score_range_rounded": 0.0
+   },
+   "sts16": {
+    "max_abs_cos_diff": 2.736699755701011e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   },
+   "stsb": {
+    "max_abs_cos_diff": 3.128747261271769e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   },
+   "sickr": {
+    "max_abs_cos_diff": 3.042011087472929e-14,
+    "score_range": 0.0,
+    "score_range_rounded": 0.0
+   }
+  }
+ }
+}

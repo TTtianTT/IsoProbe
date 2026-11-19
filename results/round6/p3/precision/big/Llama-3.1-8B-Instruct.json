@@ -1,0 +1,23 @@
+{
+ "model": "Llama-3.1-8B-Instruct",
+ "fp32": {
+  "loss": 2.4540550350406716,
+  "loss_demeaned": 4.766242259292577,
+  "dloss_demeaned": 2.3121872242519053,
+  "n_tokens": 100074,
+  "n_paragraphs": 689,
+  "m_norm": 65.0805435180664,
+  "elapsed_s": 84.50145101547241
+ },
+ "bf16": {
+  "loss": 2.4548601265288297,
+  "loss_demeaned": 4.766824689622258,
+  "dloss_demeaned": 2.311964563093428,
+  "n_tokens": 100074,
+  "n_paragraphs": 689,
+  "m_norm": 65.0741958618164,
+  "elapsed_s": 21.221698760986328
+ },
+ "loss_bf16_minus_fp32": 0.000805091488158105,
+ "dloss_bf16_minus_fp32": -0.00022266115847724421
+}

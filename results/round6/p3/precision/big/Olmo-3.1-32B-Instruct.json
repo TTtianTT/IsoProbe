@@ -1,0 +1,23 @@
+{
+ "model": "Olmo-3.1-32B-Instruct",
+ "fp32": {
+  "loss": 2.8904954607955324,
+  "loss_demeaned": 4.189008805150844,
+  "dloss_demeaned": 1.2985133443553118,
+  "n_tokens": 100155,
+  "n_paragraphs": 694,
+  "m_norm": 18.408601760864258,
+  "elapsed_s": 315.4854989051819
+ },
+ "bf16": {
+  "loss": 2.89048517034924,
+  "loss_demeaned": 4.188659998876741,
+  "dloss_demeaned": 1.2981748285275012,
+  "n_tokens": 100155,
+  "n_paragraphs": 694,
+  "m_norm": 18.409677505493164,
+  "elapsed_s": 57.47595810890198
+ },
+ "loss_bf16_minus_fp32": -1.0290446292415822e-05,
+ "dloss_bf16_minus_fp32": -0.00033851582781063705
+}

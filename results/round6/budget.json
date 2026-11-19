@@ -1,15 +1,15 @@
 {
  "phase": "round 6 phase 3",
  "since": "2026-11-18T23:20",
- "gpu_hours": 2.141,
- "cpu_core_hours": 41.88,
- "cpu_core_hours_of_gpu_jobs": 17.13,
+ "gpu_hours": 21.328,
+ "cpu_core_hours": 78.55,
+ "cpu_core_hours_of_gpu_jobs": 170.62,
  "limit_gpu_hours": 60.0,
  "limit_cpu_core_hours": 3000.0,
- "frac_gpu": 0.0357,
- "frac_cpu": 0.014,
+ "frac_gpu": 0.3555,
+ "frac_cpu": 0.0262,
  "stop_at_80pct": false,
- "n_jobs": 36,
+ "n_jobs": 74,
  "jobs": [
   {
    "job": "71743",
@@ -264,16 +264,80 @@
    "name": "iso-r6p3-u2",
    "gpus": 1,
    "cpus": 8,
-   "elapsed_s": 1597,
-   "state": "RUNNING"
+   "elapsed_s": 1624,
+   "state": "COMPLETED"
   },
   {
    "job": "71774_3",
    "name": "iso-r6p3-u2",
    "gpus": 1,
    "cpus": 8,
-   "elapsed_s": 663,
-   "state": "RUNNING"
+   "elapsed_s": 2879,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71774_4",
+   "name": "iso-r6p3-u2",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 3663,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71774_5",
+   "name": "iso-r6p3-u2",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 5778,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71774_6",
+   "name": "iso-r6p3-u2",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 5562,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71774_7",
+   "name": "iso-r6p3-u2",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 6895,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71774_8",
+   "name": "iso-r6p3-u2",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 5110,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71774_9",
+   "name": "iso-r6p3-u2",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 9208,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71774_10",
+   "name": "iso-r6p3-u2",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 13738,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71774_11",
+   "name": "iso-r6p3-u2",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 14177,
+   "state": "COMPLETED"
   },
   {
    "job": "71778",
@@ -297,6 +361,246 @@
    "gpus": 0,
    "cpus": 16,
    "elapsed_s": 36,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71783",
+   "name": "iso-r6p3-smoke",
+   "gpus": 0,
+   "cpus": 16,
+   "elapsed_s": 11,
+   "state": "FAILED"
+  },
+  {
+   "job": "71784",
+   "name": "iso-r6p3-smoke",
+   "gpus": 0,
+   "cpus": 16,
+   "elapsed_s": 19,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71831_3",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 59,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71831_4",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 277,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71831_5",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 391,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71831_6",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 390,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71831_7",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 471,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71831_8",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 464,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71831_9",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 683,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71831_10",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 682,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_0",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 176,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_1",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 242,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_2",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 325,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_3",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 63,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_4",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 46,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_5",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 41,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_6",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 50,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_7",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 58,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_8",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 121,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_9",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 141,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_10",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 130,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_11",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 114,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_12",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 136,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_13",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 273,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_14",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 396,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71844_15",
+   "name": "iso-r6p3-u2u4",
+   "gpus": 1,
+   "cpus": 8,
+   "elapsed_s": 386,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71847_11",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 577,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71865_0",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 47,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71865_1",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 31,
+   "state": "COMPLETED"
+  },
+  {
+   "job": "71865_2",
+   "name": "iso-r6p3-u2diag",
+   "gpus": 0,
+   "cpus": 32,
+   "elapsed_s": 38,
    "state": "COMPLETED"
   }
  ]

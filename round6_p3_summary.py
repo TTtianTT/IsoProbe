@@ -225,14 +225,14 @@ def u2():
         wh = list(q["whiten_mean7_by_rep"].values())
         ax.plot([i - 0.2, i - 0.2], [min(raw), max(raw)], color="#2a78d6", lw=6, solid_capstyle="round", label="raw (range over 7 gauges)" if i == 0 else None)
         ax.plot([i, i], [min(zs), max(zs)], color="#eb6834", lw=6, solid_capstyle="round", label="zscore (range over 7 gauges)" if i == 0 else None)
-        ax.scatter([i + 0.2], [np.mean(wh)], color="#1baf7a", s=40, zorder=3, label="whitening (range < 1e-6)" if i == 0 else None)
+        ax.scatter([i + 0.2], [np.mean(wh)], color="#1baf7a", s=40, zorder=3, label="whitening (cosines equal across 7 gauges to < 1e-8)" if i == 0 else None)
     ax.set_xticks(range(len(ms)))
     ax.set_xticklabels([m.replace("-Instruct", "-I").replace("Mistral-Small-24B-I-2501", "Mistral-24B-I") for m in ms], rotation=35, ha="right", fontsize=8)
     ax.set_ylabel("Spearman x100, mean over 7 STS sets")
     ax.set_title("Mean pooling of V1: score under 7 output-preserving gauges")
     ax.grid(axis="y", color="#e6e6e3", lw=0.8)
     ax.spines[["top", "right"]].set_visible(False)
-    ax.legend(frameon=False, fontsize=8, loc="lower right")
+    ax.legend(frameon=False, fontsize=8, loc="lower left")
     fig.tight_layout()
     fig.savefig("figs/r6p3_fig1_whiten_wide.png", dpi=150)
 
@@ -290,13 +290,14 @@ def u4():
     ax = axes[2]
     lab = [k.replace("-", "/") for k in keys]
     for j, (rv, c) in enumerate((("step143000", "#2a78d6"), ("step50000", "#1baf7a"))):
-        ax.barh([i + (j - 0.5) * 0.4 for i in range(len(keys))], [mech.get(f"{rv}/{k}", {}).get("loss", np.nan) for k in keys],
+        ax.barh([i + (j - 0.5) * 0.4 for i in range(len(keys))], [mech.get(f"{rv}/{k}", {}).get("loss", np.nan) - mech.get(f"{rv}/fp32-fp32-fp32", {}).get("loss", np.nan) for k in keys],
                 height=0.36, color=c, label=f"70m {rv}")
     ax.set_yticks(range(len(keys)))
     ax.set_yticklabels(lab, fontsize=8)
     ax.invert_yaxis()
-    ax.set_xlabel("eval loss (nat); body / final norm / head")
-    ax.legend(frameon=False, fontsize=8)
+    ax.set_xlabel("loss - all-fp32 loss (nat)")
+    ax.set_title("pythia-70m: body / final norm / head dtype", fontsize=10)
+    ax.legend(frameon=False, fontsize=8, loc="lower right")
     for a in axes:
         a.grid(color="#e6e6e3", lw=0.8)
         a.spines[["top", "right"]].set_visible(False)

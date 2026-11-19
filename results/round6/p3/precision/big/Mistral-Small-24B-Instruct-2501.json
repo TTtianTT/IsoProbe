@@ -1,0 +1,23 @@
+{
+ "model": "Mistral-Small-24B-Instruct-2501",
+ "fp32": {
+  "loss": 2.2415427665423255,
+  "loss_demeaned": 4.325623782116163,
+  "dloss_demeaned": 2.0840810155738376,
+  "n_tokens": 100019,
+  "n_paragraphs": 664,
+  "m_norm": 216.5900421142578,
+  "elapsed_s": 217.18402528762817
+ },
+ "bf16": {
+  "loss": 2.2422995081373993,
+  "loss_demeaned": 4.3275142822961294,
+  "dloss_demeaned": 2.08521477415873,
+  "n_tokens": 100019,
+  "n_paragraphs": 664,
+  "m_norm": 215.59165954589844,
+  "elapsed_s": 35.16038465499878
+ },
+ "loss_bf16_minus_fp32": 0.0007567415950737733,
+ "dloss_bf16_minus_fp32": 0.001133758584892508
+}
